@@ -290,11 +290,10 @@ def create_teams():
     for i in range(team_count):
         # 创建队伍
 
-
         # 生成唯一的队伍名称 - 连续编号
         team_counter = 1
         while True:
-            team_name = f"RedTeam-{team_counter:03d}"
+            team_name = f"红队{team_counter}"
             if not Team.query.filter_by(team_name=team_name).first():
                 break
             team_counter += 1
@@ -349,6 +348,13 @@ def create_teams():
         'teams': created_teams
     })
 
+
+
+
+
+
+
+
 @app.route('/api/admin/delete_all_users', methods=['DELETE'])
 def delete_all_users():
     """一键删除所有红队账户"""
@@ -397,6 +403,48 @@ def delete_all_users():
         'success': True,
         'message': '所有红队账户已删除'
     })
+
+# 在 app.py 的 API路由 - 管理员功能部分添加以下路由
+# 可以放在 delete_all_users 路由后面
+
+@app.route('/api/admin/teams/<int:team_id>/rename', methods=['PUT'])
+def admin_rename_team(team_id):
+    """管理员修改队伍名称"""
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return jsonify({'success': False, 'message': '无权限访问'}), 403
+    
+    data = request.json
+    new_name = data.get('team_name')
+    
+    if not new_name or len(new_name) < 3:
+        return jsonify({'success': False, 'message': '队伍名称至少需要3个字符'}), 400
+    
+    team = Team.query.get_or_404(team_id)
+    
+    # 检查队名是否已存在
+    existing_team = Team.query.filter_by(team_name=new_name).first()
+    if existing_team and existing_team.id != team.id:
+        return jsonify({'success': False, 'message': '队伍名称已存在'}), 400
+    
+    old_name = team.team_name
+    team.team_name = new_name
+    db.session.commit()
+    
+    # 记录操作日志
+    log_entry = SystemLog(
+        log_type='system',
+        message=f'管理员将队伍 {old_name} 更名为 {new_name}',
+        severity='low',
+        user_id=session['user_id']
+    )
+    db.session.add(log_entry)
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': '队伍名称修改成功'
+    })
+
 
 
 @app.route('/api/admin/all_users', methods=['GET'])

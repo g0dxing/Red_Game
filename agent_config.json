@@ -1,8 +1,8 @@
 {
-  "platform_url": "http://localhost:5000/api/logs/collect",
+  "platform_url": "http://192.168.100.35:5000/api/logs/collect",
   "target_id": "target_web_001",
-  "target_name": "Web服务器-01",
-  "target_ip": "192.168.100.35",
+  "target_name": "海洋博物馆",
+  "target_ip": "192.168.100.7",
   "log_sources": {
     "web_access": {
       "enabled": true,
@@ -40,7 +40,7 @@
     "severity": "critical"
   },
   "network_monitor": {
-    "enabled": true,
+    "enabled": false,
     "monitor_ports": [
       80,
       443,
@@ -66,6 +66,6 @@
     ],
     "severity": "critical"
   },
-  "send_interval": 1,
-  "batch_size": 1000
+  "send_interval": 2,
+  "batch_size": 500
 }

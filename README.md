@@ -206,7 +206,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://username:password@local
 如有问题或建议，欢迎联系：
 - 项目维护者: [godxing]
 - 邮箱: [1848210202@qq.com]
-- 项目地址: [https://github.com/g0dxing/Offensive-and-defensive-platform]
+- 项目地址: [GitHub Repository]
 
 ---
 
