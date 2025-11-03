@@ -1,0 +1,3 @@
+# Monitoring & Logging
+psutil==5.9.5
+watchdog==3.0.0

@@ -1,6 +1,9 @@
-# 实时攻防平台 (python攻防平台)
+# 红色竞赛实时攻防平台 (Red_Game)
+"蓝的世界于凌晨两点沉入梦境，红的天地在此刻悄然迎来黎明。"
 
-一个功能完整的网络安全攻防演练平台，采用红黑色调主题设计，支持实时态势感知、队伍管理、靶标部署、成绩统计等完整功能。
+## 平台介绍
+
+红色竞赛实时攻防平台平台,一个为网络安全竞赛打造的、具备实时攻防态势感知能力的红蓝对抗平台。一个功能完整的网络安全攻防演练平台，采用红黑色调主题设计，支持实时态势感知、队伍管理、靶标部署、成绩统计等完整功能。
 
 ## 🎯 功能特性
 
@@ -19,48 +22,84 @@
 
 ## 🛠️ 技术栈
 
-### 后端
-- **Python 3.8+** - 后端开发语言
-- **Flask** - Web框架
-- **Flask-SocketIO** - 实时通信
-- **SQLAlchemy** - ORM框架
-- **MySQL** - 数据库
+| 层面     | 技术选型                                        |
+| :------- | :---------------------------------------------- |
+| **后端** | Python 3.8+, Flask, SQLAlchemy, MySQL           |
+| **前端** | 原生HTML/CSS/JS, Tailwind CSS, Socket.IO Client |
+| **监控** | 自定义Python Agent, Watchdog                    |
 
-### 前端
-- **原生HTML/CSS/JS** - 无框架依赖
-- **Tailwind CSS** - 样式框架
-- **Font Awesome** - 图标库
-- **Socket.IO Client** - 实时通信
-- **Axios** - HTTP客户端
-
-### 监控组件
-- **日志收集Agent** - Python编写的被动式日志收集
-- **文件完整性监控** - 基于watchdog的文件监控
-- **网络连接监控** - 实时网络流量分析
-- **系统资源监控** - CPU、内存、磁盘使用率
 
 
 ## 📁 项目结构
 
 ```
-python攻防平台/
-├── app.py                # 主应用程序
-├── log_agent.py          # 日志收集Agent
-├── agent_config.json     # Agent配置文件
-├── database_schema.sql   # 数据库结构
-├── index.html            # 首页
-├── templates/            # HTML模板
-│   ├── base.html        # 基础模板
-│   ├── index.html       # 首页
-│   ├── login.html       # 登录页
-│   ├── admin.html       # 管理面板
-│   ├── dashboard.html   # 用户面板
-│   └── situation.html   # 实时态势大屏
-├── static/               # 静态文件
-│   ├── uploads          # 头像存储目录（功能待开发）
-├── README.md             # 项目文档
-└── requirements.txt      # python依赖项
+Red_Game/
+├── app.py                    # 主应用程序
+├── database_schema.sql       # 数据库结构
+├── index.html                # 首页
+├── templates/                # HTML模板
+│   ├── base.html            # 基础模板
+│   ├── index.html           # 首页
+│   ├── login.html           # 登录页
+│   ├── admin.html           # 管理面板
+│   ├── dashboard.html       # 用户面板
+│   └── situation.html       # 实时态势大屏
+├── static/                   # 静态文件
+│   ├── uploads/             # 头像存储目录（功能待开发）
+├── 日志收集探针/             # 存放日志收集探针脚本及其配置文件
+│   ├── log_agent.py         # 日志收集Agent
+│   ├── agent_config.json    # Agent配置文件及其模板
+│   ├── agent_config.json.example
+│   ├── requirements.txt     # Agent脚本python依赖
+├── README.md                 # 项目文档
+└── requirements.txt          # python依赖项
 ```
+
+## 📸 平台功能展示
+
+### 🖥️ 系统功能
+<div align="center">
+
+| 实时态势大屏 | 首页功能 | 系统设置 |
+|:---:|:---:|:---:|
+| <img src="images/taishidaping.png" width="250" alt="实时态势大屏"> | <img src="images/index2.png" width="250" alt="首页功能"> | <img src="images/xitongshezhi.png" width="250" alt="系统设置"> |
+| **攻防态势可视化** | **完整功能展示** | **系统参数配置** |
+
+</div>
+
+
+### 🏠 用户界面
+<div align="center">
+
+| 登录页面 | 红队首页 | 首页展示 |
+|:---:|:---:|:---:|
+| <img src="images/login.png" width="250" alt="登录页面"> | <img src="images/hongduishouye.png" width="250" alt="红队首页"> | <img src="images/index1.png" width="250" alt="首页展示"> |
+| **统一身份认证** | **红队操作面板** | **平台首页概览** |
+
+</div>
+
+### 🎯 比赛管理
+<div align="center">
+
+| 比赛管理 | 比赛设置 | 比赛控制 |
+|:---:|:---:|:---:|
+| <img src="images/bisaiguanli.png" width="250" alt="比赛管理"> | <img src="images/bisaiguanli1.png" width="250" alt="比赛设置"> | <img src="images/bisaiguanli2.png" width="250" alt="比赛控制"> |
+| **比赛信息管理** | **详细参数设置** | **比赛进程控制** |
+
+</div>
+
+### 👥 队伍管理
+<div align="center">
+
+| 队伍管理 | 成员管理 | 批量操作 |
+|:---:|:---:|:---:|
+| <img src="images/duiwuguanli1.png" width="250" alt="队伍管理"> | <img src="images/duiwuguanli2.png" width="250" alt="成员管理"> | <img src="images/babiaoguanli.png" width="250" alt="靶标管理"> |
+| **队伍信息维护** | **成员信息管理** | **靶标部署管理** |
+
+</div>
+
+
+
 
 ## 🚀 快速开始
 
@@ -73,8 +112,8 @@ python攻防平台/
 
 1. **克隆或下载项目**
 ```bash
-git clone <repository-url>
-cd cyber-range-platform
+git clone https://github.com/g0dxing/Red_Game.git
+cd Red_Game
 ```
 
 2. **安装Python依赖**
@@ -95,7 +134,7 @@ python app.py
 
 5. **访问平台**
 - 主页: http://localhost:5000
-- 管理员账户: admin / godxing
+- 默认管理员账户: admin / godxing
 
 ### 日志收集Agent使用
 
@@ -106,10 +145,11 @@ cp agent_config.json.example agent_config.json
 vim agent_config.json
 ```
 
-2. 将`log_agent.py`及其配置文件`agent_config.json`上传至已经部署好的靶机中
+2. 将`日志收集探针`文件夹上传至已经部署好的靶机中。
 
 3. **启动Agent**
 ```bash
+pip install -r requirements.txt
 python log_agent.py
 ```
 
@@ -122,7 +162,7 @@ python log_agent.py
 ### 2. 管理员功能
 - **批量创建队伍**: 一键生成多个队伍和账户、一键删除所有帐号功能。
 - **比赛管理**: 创建比赛、设置靶标、自定义flag、控制时间
-- **用户管理**: 查看、删除用户账户
+- **用户管理**: 查看、删除用户，查看、修改队伍名称
 - **系统监控**: 查看系统状态和日志
 
 
@@ -151,15 +191,15 @@ python log_agent.py
 ### 数据库配置
 在 `app.py` 中修改数据库连接：
 ```python
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://username:password@localhost/cyber_range_platform'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://username:password@localhost/Red_Game'
 ```
 
 ### Agent配置
 在 `agent_config.json` 中配置监控项：
 ```json
 {
-  "platform_url": "http://localhost:5000/api/logs/collect",
-  "target_id": "target_web_001",
+  "platform_url": "http://localhost:5000/api/logs/collect", //平台地址
+  "target_id": "target_web_001",                            //靶机id
   "log_sources": {
     "web_access": {
       "enabled": true,
@@ -204,10 +244,21 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://username:password@local
 ## 📞 联系方式
 
 如有问题或建议，欢迎联系：
-- 项目维护者: [godxing]
+- 项目维护者: [g0dxing]
 - 邮箱: [1848210202@qq.com]
-- 项目地址: [GitHub Repository]
+- 项目地址: [https://github.com/g0dxing/Red_Game.git]
+
 
 ---
 
-**⚠️ 安全声明**: 本平台仅用于合法的网络安全教育和培训目的，请勿用于非法活动。
+# **⚠️ 商用声明**: 商业活动请联系作者，有点钱作者就能给你当牛马。10RMB为您打造定制化平台。
+
+
+
+[![GitHub stars](https://img.shields.io/github/stars/g0dxing/Red_Game?style=for-the-badge)](https://github.com/g0dxing/Red_Game/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/g0dxing/Red_Game?style=for-the-badge)](https://github.com/g0dxing/Red_Game/network/members)
+[![GitHub issues](https://img.shields.io/github/issues/g0dxing/Red_Game?style=for-the-badge)](https://github.com/g0dxing/Red_Game/issues)
+[![Python Version](https://img.shields.io/badge/Python-3.8%2B-blue?style=for-the-badge)](https://www.python.org)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](https://opensource.org/licenses/MIT)
+
+[![GitHub Stats](https://github-readme-stats.vercel.app/api?username=g0dxing&show_icons=true&theme=radical)](https://github.com/g0dxing/Red_Game)

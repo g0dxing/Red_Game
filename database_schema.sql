@@ -2,8 +2,8 @@
 -- 主题：红黑色调攻防平台
 
 -- 创建数据库
-CREATE DATABASE IF NOT EXISTS cyber_range_platform CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE cyber_range_platform;
+CREATE DATABASE IF NOT EXISTS Red_Game CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE Red_Game;
 
 -- 首先创建不依赖其他表的队伍表
 CREATE TABLE teams (

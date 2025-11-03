@@ -22,8 +22,8 @@ import time
 # 配置
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'cyber-range-secret-key-2024'
-#这里设置数据库的帐号密码：mysql+pymysql://[帐号]:[密码]@localhost/cyber_range_platform
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:root@localhost/cyber_range_platform'
+#这里设置数据库的帐号密码：mysql+pymysql://[帐号]:[密码]@localhost/Red_Game
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:root@localhost/Red_Game'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 
