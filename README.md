@@ -5,6 +5,52 @@
 
 红色竞赛实时攻防平台平台,一个为网络安全竞赛打造的、具备实时攻防态势感知能力的红蓝对抗平台。一个功能完整的网络安全攻防演练平台，采用红黑色调主题设计，支持实时态势感知、队伍管理、靶标部署、成绩统计等完整功能。
 
+
+## 📸 平台功能展示
+
+### 🖥️ 系统功能
+<div align="center">
+
+| 实时态势大屏 | 首页功能 | 系统设置 |
+|:---:|:---:|:---:|
+| <img src="images/taishidaping.png" width="250" alt="实时态势大屏"> | <img src="images/index2.png" width="250" alt="首页功能"> | <img src="images/xitongshezhi.png" width="250" alt="系统设置"> |
+| **攻防态势可视化** | **完整功能展示** | **系统参数配置** |
+
+</div>
+
+
+### 🏠 用户界面
+<div align="center">
+
+| 登录页面 | 红队首页 | 首页展示 |
+|:---:|:---:|:---:|
+| <img src="images/login.png" width="250" alt="登录页面"> | <img src="images/hongduishouye.png" width="250" alt="红队首页"> | <img src="images/index1.png" width="250" alt="首页展示"> |
+| **统一身份认证** | **红队操作面板** | **平台首页概览** |
+
+</div>
+
+### 🎯 比赛管理
+<div align="center">
+
+| 比赛管理 | 比赛设置 | 比赛控制 |
+|:---:|:---:|:---:|
+| <img src="images/bisaiguanli.png" width="250" alt="比赛管理"> | <img src="images/bisaiguanli1.png" width="250" alt="比赛设置"> | <img src="images/bisaiguanli2.png" width="250" alt="比赛控制"> |
+| **比赛信息管理** | **详细参数设置** | **比赛进程控制** |
+
+</div>
+
+### 👥 队伍管理
+<div align="center">
+
+| 队伍管理 | 成员管理 | 批量操作 |
+|:---:|:---:|:---:|
+| <img src="images/duiwuguanli1.png" width="250" alt="队伍管理"> | <img src="images/duiwuguanli2.png" width="250" alt="成员管理"> | <img src="images/babiaoguanli.png" width="250" alt="靶标管理"> |
+| **队伍信息维护** | **成员信息管理** | **靶标部署管理** |
+
+</div>
+
+
+
 ## 🎯 功能特性
 
 ### 核心功能
@@ -55,48 +101,7 @@ Red_Game/
 └── requirements.txt          # python依赖项
 ```
 
-## 📸 平台功能展示
 
-### 🖥️ 系统功能
-<div align="center">
-
-| 实时态势大屏 | 首页功能 | 系统设置 |
-|:---:|:---:|:---:|
-| <img src="images/taishidaping.png" width="250" alt="实时态势大屏"> | <img src="images/index2.png" width="250" alt="首页功能"> | <img src="images/xitongshezhi.png" width="250" alt="系统设置"> |
-| **攻防态势可视化** | **完整功能展示** | **系统参数配置** |
-
-</div>
-
-
-### 🏠 用户界面
-<div align="center">
-
-| 登录页面 | 红队首页 | 首页展示 |
-|:---:|:---:|:---:|
-| <img src="images/login.png" width="250" alt="登录页面"> | <img src="images/hongduishouye.png" width="250" alt="红队首页"> | <img src="images/index1.png" width="250" alt="首页展示"> |
-| **统一身份认证** | **红队操作面板** | **平台首页概览** |
-
-</div>
-
-### 🎯 比赛管理
-<div align="center">
-
-| 比赛管理 | 比赛设置 | 比赛控制 |
-|:---:|:---:|:---:|
-| <img src="images/bisaiguanli.png" width="250" alt="比赛管理"> | <img src="images/bisaiguanli1.png" width="250" alt="比赛设置"> | <img src="images/bisaiguanli2.png" width="250" alt="比赛控制"> |
-| **比赛信息管理** | **详细参数设置** | **比赛进程控制** |
-
-</div>
-
-### 👥 队伍管理
-<div align="center">
-
-| 队伍管理 | 成员管理 | 批量操作 |
-|:---:|:---:|:---:|
-| <img src="images/duiwuguanli1.png" width="250" alt="队伍管理"> | <img src="images/duiwuguanli2.png" width="250" alt="成员管理"> | <img src="images/babiaoguanli.png" width="250" alt="靶标管理"> |
-| **队伍信息维护** | **成员信息管理** | **靶标部署管理** |
-
-</div>
 
 
 
@@ -121,6 +126,8 @@ cd Red_Game
 pip install -r requirements.txt
 ```
 安装python3.9教程：[源码编译安装python3.9](https://blog.csdn.net/qq_64643536/article/details/154342125?sharetype=blogdetail&sharerId=154342125&sharerefer=PC&sharesource=qq_64643536&spm=1011.2480.3001.8118)
+
+
 3. **配置数据库**
 ```bash
 # 创建数据库
