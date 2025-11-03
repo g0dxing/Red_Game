@@ -21,7 +21,10 @@ import time
 
 # 配置
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'cyber-range-secret-key-2024'
+#app.config['SECRET_KEY'] = 'cyber-range-secret-key-2024'
+#随机生成SECRET_KEY
+app.config['SECRET_KEY'] = os.urandom(24).hex()
+
 #这里设置数据库的帐号密码：mysql+pymysql://[帐号]:[密码]@localhost/Red_Game
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:root@localhost/Red_Game'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
