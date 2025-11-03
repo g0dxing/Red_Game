@@ -4,27 +4,24 @@
 实时攻防平台后端主程序
 红黑色调主题，支持管理员和红队成员功能
 """
-
 import os
 import json
 import random
 import string
 import time
 import threading
-from datetime import datetime, timedelta
-
+from datetime import datetime, timedelta,timezone
 from flask import Flask, request, jsonify, session, send_from_directory, render_template
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
 from flask_sqlalchemy import SQLAlchemy
-
 # =============================================================================
 # 配置信息 - 集中管理所有配置项
 # =============================================================================
 
 # 数据库配置
 DB_CONFIG = {
-    'URI': 'mysql+pymysql://root:root@localhost/Red_Game',  # 修改数据库连接信息
+    'URI': 'mysql+pymysql://root:root@localhost/Red_Game?charset=utf8mb4',
     'TRACK_MODIFICATIONS': False
 }
 
@@ -67,6 +64,11 @@ online_users = {}
 # =============================================================================
 # 数据库模型定义
 # =============================================================================
+#定义获取本地时间函数
+def get_local_time():
+    """获取本地时间（北京时间）"""
+    return datetime.now()
+
 
 class User(db.Model):
     """用户模型"""
@@ -86,6 +88,8 @@ class User(db.Model):
     updated_at = db.Column(db.TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     team = db.relationship('Team', backref='members')
+    created_at = db.Column(db.TIMESTAMP, default=get_local_time)
+    updated_at = db.Column(db.TIMESTAMP, default=get_local_time, onupdate=get_local_time)
 
 class Team(db.Model):
     """队伍模型"""
@@ -96,8 +100,8 @@ class Team(db.Model):
     team_icon = db.Column(db.String(255))
     total_score = db.Column(db.Integer, default=0)
     member_count = db.Column(db.Integer, default=0)
-    created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow)
-    updated_at = db.Column(db.TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.TIMESTAMP, default=get_local_time)
+    updated_at = db.Column(db.TIMESTAMP, default=get_local_time, onupdate=get_local_time)
 
 class Competition(db.Model):
     """比赛模型"""
@@ -113,8 +117,8 @@ class Competition(db.Model):
     is_active = db.Column(db.Boolean, default=False)
     is_ended = db.Column(db.Boolean, default=False)
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow)
-    updated_at = db.Column(db.TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.TIMESTAMP, default=get_local_time)
+    updated_at = db.Column(db.TIMESTAMP, default=get_local_time, onupdate=get_local_time)
 
 class Target(db.Model):
     """靶标模型"""
@@ -128,9 +132,9 @@ class Target(db.Model):
     points = db.Column(db.Integer, default=100)
     description = db.Column(db.Text)
     is_active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow)
 
     competition = db.relationship('Competition', backref='targets')
+    created_at = db.Column(db.TIMESTAMP, default=get_local_time)
 
 class FlagSubmission(db.Model):
     """Flag提交模型"""
@@ -142,10 +146,11 @@ class FlagSubmission(db.Model):
     submitted_flag = db.Column(db.String(255), nullable=False)
     is_correct = db.Column(db.Boolean, default=False)
     points_earned = db.Column(db.Integer, default=0)
-    submitted_at = db.Column(db.TIMESTAMP, default=datetime.utcnow)
+    submitted_at = db.Column(db.TIMESTAMP, default=get_local_time)
 
     user = db.relationship('User', backref='flag_submissions')
     target = db.relationship('Target', backref='submissions')
+
 
 class SystemLog(db.Model):
     """系统日志模型"""
@@ -160,7 +165,7 @@ class SystemLog(db.Model):
     team_id = db.Column(db.Integer, db.ForeignKey('teams.id'), nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     raw_data = db.Column(db.JSON)
-    created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow)
+    created_at = db.Column(db.TIMESTAMP, default=get_local_time)
 
     team = db.relationship('Team', backref='logs')
     user = db.relationship('User', backref='logs')
@@ -175,13 +180,15 @@ class AttackLog(db.Model):
     target_ip = db.Column(db.String(45), nullable=False)
     attack_type = db.Column(db.String(50))
     traffic_volume = db.Column(db.Integer, default=0)
-    timestamp = db.Column(db.TIMESTAMP, default=datetime.utcnow)
+    timestamp = db.Column(db.TIMESTAMP, default=get_local_time)
 
     team = db.relationship('Team', backref='attack_logs')
 
 # =============================================================================
 # 工具函数
 # =============================================================================
+
+
 
 def generate_random_username(length=8):
     """生成随机用户名"""
@@ -1171,68 +1178,156 @@ def manage_competitions():
         return jsonify({'success': False, 'message': '无权限访问'}), 403
 
     if request.method == 'GET':
-        competitions = Competition.query.order_by(Competition.created_at.desc()).all()
-        return jsonify({
-            'success': True,
-            'competitions': [{
-                'id': c.id,
-                'name': c.name,
-                'description': c.description,
-                'background_story': c.background_story,
-                'theme_image': c.theme_image,
-                'start_time': c.start_time.isoformat() if c.start_time else None,
-                'end_time': c.end_time.isoformat() if c.end_time else None,
-                'is_active': c.is_active,
-                'is_ended': c.is_ended,
-                'created_at': c.created_at.isoformat()
-            } for c in competitions]
-        })
+        # 获取比赛列表
+        try:
+            competitions = Competition.query.order_by(Competition.created_at.desc()).all()
+            return jsonify({
+                'success': True,
+                'competitions': [{
+                    'id': c.id,
+                    'name': c.name,
+                    'description': c.description,
+                    'background_story': c.background_story,
+                    'theme_image': c.theme_image,
+                    'start_time': c.start_time.isoformat() if c.start_time else None,
+                    'end_time': c.end_time.isoformat() if c.end_time else None,
+                    'is_active': c.is_active,
+                    'is_ended': c.is_ended,
+                    'created_at': c.created_at.isoformat()
+                } for c in competitions]
+            })
+        except Exception as e:
+            print(f"获取比赛列表失败: {e}")
+            return jsonify({'success': False, 'message': '获取比赛列表失败'}), 500
 
     elif request.method == 'POST':
+        # 创建比赛
         data = request.json
+        print(f"收到创建比赛请求: {data}")
 
-        competition = Competition(
-            name=data.get('name'),
-            description=data.get('description'),
-            background_story=data.get('background_story'),
-            theme_image=data.get('theme_image'),
-            start_time=datetime.fromisoformat(data.get('start_time')) if data.get('start_time') else None,
-            end_time=datetime.fromisoformat(data.get('end_time')) if data.get('end_time') else None,
-            created_by=session['user_id'],
-            is_active=True
-        )
+        # 验证必要字段
+        if not data.get('name'):
+            return jsonify({'success': False, 'message': '比赛名称不能为空'}), 400
 
-        db.session.add(competition)
-        db.session.flush()
+        try:
+            # 简化时间处理逻辑 - 修复时区问题
+            def parse_combined_datetime(date_str, time_str):
+                """解析组合的日期和时间，直接存储为本地时间"""
+                if not date_str or not time_str:
+                    return None
+                try:
+                    # 组合成标准格式，直接作为本地时间存储
+                    datetime_str = f"{date_str}T{time_str}"
+                    local_dt = datetime.fromisoformat(datetime_str)
+                    
+                    print(f"时间存储: {local_dt} (本地时间)")
+                    return local_dt  # 直接返回本地时间，不转换时区
+                except Exception as e:
+                    print(f"时间解析错误: {e}")
+                    return None
 
-        targets = data.get('targets', [])
-        for target_data in targets:
-            target = Target(
-                competition_id=competition.id,
-                name=target_data.get('name'),
-                ip_address=target_data.get('ip_address'),
-                flag=target_data.get('flag', generate_random_flag()),
-                points=target_data.get('points', 100),
-                description=target_data.get('description', '')
+            # 使用统一的时间解析方法
+            start_time = parse_combined_datetime(data.get('start_date'), data.get('start_time'))
+            end_time = parse_combined_datetime(data.get('end_date'), data.get('end_time'))
+
+            # 如果没有分开的字段，尝试直接解析组合字段
+            if not start_time and data.get('start_time'):
+                try:
+                    start_str = data.get('start_time')
+                    if 'T' in start_str:
+                        # 直接解析为本地时间
+                        start_time = datetime.fromisoformat(start_str.replace('Z', ''))
+                    else:
+                        # 处理没有T的情况
+                        start_time = datetime.strptime(start_str, '%Y-%m-%d %H:%M')
+                except Exception as e:
+                    print(f"开始时间解析失败: {e}")
+
+            if not end_time and data.get('end_time'):
+                try:
+                    end_str = data.get('end_time')
+                    if 'T' in end_str:
+                        end_time = datetime.fromisoformat(end_str.replace('Z', ''))
+                    else:
+                        end_time = datetime.strptime(end_str, '%Y-%m-%d %H:%M')
+                except Exception as e:
+                    print(f"结束时间解析失败: {e}")
+
+            # 验证时间逻辑
+            if start_time and end_time:
+                if start_time >= end_time:
+                    return jsonify({'success': False, 'message': '结束时间必须晚于开始时间'}), 400
+            else:
+                return jsonify({'success': False, 'message': '开始时间和结束时间不能为空'}), 400
+            # 创建比赛对象
+            competition = Competition(
+                name=data.get('name'),
+                description=data.get('description'),
+                background_story=data.get('background_story'),
+                theme_image=data.get('theme_image'),
+                start_time=start_time,
+                end_time=end_time,
+                created_by=session['user_id'],
+                is_active=True
             )
-            db.session.add(target)
 
-        db.session.commit()
+            db.session.add(competition)
+            db.session.flush()  # 获取competition.id
 
-        log_entry = SystemLog(
-            log_type='system',
-            message=f'管理员创建了比赛: {competition.name}',
-            severity='low',
-            user_id=session['user_id']
-        )
-        db.session.add(log_entry)
-        db.session.commit()
+            # 创建默认靶标
+            default_targets = [
+                {
+                    'name': 'Web服务器',
+                    'ip_address': '192.168.1.100',
+                    'points': 100,
+                    'description': 'Web应用服务靶标'
+                },
+                {
+                    'name': '数据库服务器', 
+                    'ip_address': '192.168.1.101',
+                    'points': 150,
+                    'description': '数据库服务靶标'
+                },
+                {
+                    'name': '文件服务器',
+                    'ip_address': '192.168.1.102', 
+                    'points': 80,
+                    'description': '文件服务靶标'
+                }
+            ]
 
-        return jsonify({
-            'success': True,
-            'message': '比赛创建成功',
-            'competition_id': competition.id
-        })
+            for target_data in default_targets:
+                target = Target(
+                    competition_id=competition.id,
+                    name=target_data['name'],
+                    ip_address=target_data['ip_address'],
+                    flag=generate_random_flag(),
+                    points=target_data['points'],
+                    description=target_data['description']
+                )
+                db.session.add(target)
+
+            db.session.commit()
+
+            log_entry = SystemLog(
+                log_type='system',
+                message=f'管理员创建了比赛: {competition.name}',
+                severity='low',
+                user_id=session['user_id']
+            )
+            db.session.add(log_entry)
+            db.session.commit()
+
+            return jsonify({
+                'success': True,
+                'message': '比赛创建成功',
+                'competition_id': competition.id
+            })
+
+        except Exception as e:
+            print(f"创建比赛失败: {e}")
+            db.session.rollback()
+            return jsonify({'success': False, 'message': f'创建比赛失败: {str(e)}'}), 500
 
 @app.route('/api/admin/competitions/<int:competition_id>', methods=['GET', 'PUT'])
 def manage_competition(competition_id):
@@ -1261,6 +1356,25 @@ def manage_competition(competition_id):
 
     elif request.method == 'PUT':
         data = request.json
+        print(f"更新比赛请求数据: {data}")
+
+        # 改进的时间解析函数，修复时区问题
+        def parse_datetime(dt_str):
+            if not dt_str:
+                return None
+            try:
+                # 处理datetime-local输入格式 (YYYY-MM-DDTHH:MM)
+                if 'T' in dt_str:
+                    # 直接解析为本地时间，不进行时区转换
+                    local_dt = datetime.fromisoformat(dt_str)
+                    print(f"时间解析: {local_dt} (本地时间)")
+                    return local_dt
+                else:
+                    # 处理其他格式的时间
+                    return datetime.strptime(dt_str, '%Y-%m-%d %H:%M:%S')
+            except Exception as e:
+                print(f"时间解析错误: {e}")
+                return None
 
         if 'name' in data:
             competition.name = data['name']
@@ -1268,28 +1382,53 @@ def manage_competition(competition_id):
             competition.description = data['description']
         if 'background_story' in data:
             competition.background_story = data['background_story']
-        if 'start_time' in data and data['start_time']:
-            competition.start_time = datetime.fromisoformat(data['start_time'])
-        if 'end_time' in data and data['end_time']:
-            competition.end_time = datetime.fromisoformat(data['end_time'])
+        if 'start_time' in data:
+            # 如果传递了空字符串，设置为None
+            if data['start_time'] == '':
+                competition.start_time = None
+            else:
+                parsed_start = parse_datetime(data['start_time'])
+                if parsed_start:
+                    competition.start_time = parsed_start
+        if 'end_time' in data:
+            # 如果传递了空字符串，设置为None
+            if data['end_time'] == '':
+                competition.end_time = None
+            else:
+                parsed_end = parse_datetime(data['end_time'])
+                if parsed_end:
+                    competition.end_time = parsed_end
         if 'is_active' in data:
             competition.is_active = data['is_active']
 
-        db.session.commit()
+        # 验证时间逻辑
+        if competition.start_time and competition.end_time:
+            if competition.start_time >= competition.end_time:
+                return jsonify({'success': False, 'message': '结束时间必须晚于开始时间'}), 400
 
-        log_entry = SystemLog(
-            log_type='system',
-            message=f'管理员更新了比赛: {competition.name}',
-            severity='low',
-            user_id=session['user_id']
-        )
-        db.session.add(log_entry)
-        db.session.commit()
+        try:
+            db.session.commit()
 
-        return jsonify({
-            'success': True,
-            'message': '比赛信息更新成功'
-        })
+            log_entry = SystemLog(
+                log_type='system',
+                message=f'管理员更新了比赛: {competition.name}',
+                severity='low',
+                user_id=session['user_id']
+            )
+            db.session.add(log_entry)
+            db.session.commit()
+
+            return jsonify({
+                'success': True,
+                'message': '比赛信息更新成功'
+            })
+
+        except Exception as e:
+            print(f"更新比赛失败: {e}")
+            db.session.rollback()
+            return jsonify({'success': False, 'message': f'更新比赛失败: {str(e)}'}), 500
+
+
 
 @app.route('/api/admin/competitions/<int:competition_id>/end', methods=['POST'])
 def end_competition(competition_id):
@@ -1651,6 +1790,60 @@ def static_files(filename):
     return send_from_directory('static', filename)
 
 # =============================================================================
+# 定时任务 - 检查比赛状态
+# =============================================================================
+
+def check_competition_status():
+    """定期检查比赛状态，自动结束到期的比赛"""
+    with app.app_context():
+        try:
+            now = datetime.now()
+            print(f"检查比赛状态 - 当前时间: {now}")
+            
+            # 查找需要结束的比赛（结束时间已到但未标记为结束的）
+            competitions_to_end = Competition.query.filter(
+                Competition.end_time <= now,
+                Competition.is_ended == False
+            ).all()
+            
+            for competition in competitions_to_end:
+                print(f"自动结束比赛: {competition.name} (ID: {competition.id})")
+                competition.is_ended = True
+                competition.is_active = False
+                
+                # 记录系统日志
+                log_entry = SystemLog(
+                    log_type='system',
+                    message=f'比赛自动结束: {competition.name}',
+                    severity='medium'
+                )
+                db.session.add(log_entry)
+            
+            if competitions_to_end:
+                db.session.commit()
+                print(f"已自动结束 {len(competitions_to_end)} 个比赛")
+                
+                # 广播状态更新
+                broadcast_score_update()
+            
+        except Exception as e:
+            print(f"检查比赛状态时出错: {e}")
+            db.session.rollback()
+
+# 启动定时任务
+def start_background_tasks():
+    """启动后台任务"""
+    def run_check():
+        while True:
+            check_competition_status()
+            time.sleep(60)  # 每分钟检查一次
+    
+    # 在单独的线程中运行定时任务
+    thread = threading.Thread(target=run_check, daemon=True)
+    thread.start()
+    print("后台任务已启动：比赛状态检查（每分钟一次）")
+
+# =============================================================================
 # 应用启动
 # =============================================================================
 
@@ -1659,6 +1852,11 @@ with app.app_context():
     db.create_all()
 
 if __name__ == '__main__':
+    print("🚀 启动实时攻防平台...")
+    
+    # 启动后台任务
+    start_background_tasks()
+    
     socketio.run(app,
                 host=SERVER_CONFIG['HOST'],
                 port=SERVER_CONFIG['PORT'],

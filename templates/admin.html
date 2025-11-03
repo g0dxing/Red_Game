@@ -595,42 +595,42 @@
 
                 if (competitions.length === 0) {
                     competitionsList.innerHTML = `
-                        <div class="text-center text-gray-400 py-8">
-                            <i class="fas fa-trophy mr-2"></i>
-                            暂无比赛数据
-                        </div>
-                    `;
+                    <div class="text-center text-gray-400 py-8">
+                        <i class="fas fa-trophy mr-2"></i>
+                        暂无比赛数据
+                    </div>
+                `;
                     return;
                 }
 
- // 在 admin.html 的 JavaScript 部分，找到 loadCompetitions 函数
-// 修改比赛列表的显示模板
-
-competitionsList.innerHTML = competitions.map(competition => `
+                competitionsList.innerHTML = competitions.map(competition => `
     <div class="bg-gray-800 p-4 rounded-lg">
         <div class="flex items-center justify-between mb-2">
             <h4 class="font-semibold text-white">${competition.name}</h4>
             <div class="flex items-center space-x-2">
                 ${competition.is_ended ?
-                    '<span class="px-2 py-1 bg-gray-600 text-xs rounded">已结束</span>' :
-                    competition.is_active ?
-                        '<span class="px-2 py-1 bg-green-600 text-xs rounded">进行中</span>' :
-                        '<span class="px-2 py-1 bg-yellow-600 text-xs rounded">未开始</span>'
-                }       
+                        '<span class="px-2 py-1 bg-gray-600 text-xs rounded">已结束</span>' :
+                        competition.is_active ?
+                            '<span class="px-2 py-1 bg-green-600 text-xs rounded">进行中</span>' :
+                            '<span class="px-2 py-1 bg-yellow-600 text-xs rounded">未开始</span>'
+                    }       
             </div>
         </div>
         <p class="text-sm text-gray-400 mb-3">${competition.description || '暂无描述'}</p>
+        <div class="grid grid-cols-2 gap-2 mb-3 text-xs text-gray-500">
+            <div><span class="text-gray-400">开始:</span> ${formatCompetitionTime(competition.start_time)}</div>
+            <div><span class="text-gray-400">结束:</span> ${formatCompetitionTime(competition.end_time)}</div>
+        </div>
         <div class="flex items-center justify-between text-xs text-gray-500">
             <span>创建时间: ${formatTime(competition.created_at)}</span>
             <div class="space-x-2">
-                <!-- 添加编辑按钮 -->
                 <button onclick="showEditCompetitionModal(${competition.id})" class="text-blue-400 hover:text-blue-300">
                     <i class="fas fa-edit mr-1"></i>编辑
                 </button>
                 ${!competition.is_ended ?
-                    `<button onclick="endCompetition(${competition.id})" class="text-red-400 hover:text-red-300">结束比赛</button>` :
-                    '<span class="text-gray-500">已结束</span>'
-                }
+                        `<button onclick="endCompetition(${competition.id})" class="text-red-400 hover:text-red-300">结束比赛</button>` :
+                        '<span class="text-gray-500">已结束</span>'
+                    }
                 <button onclick="deleteCompetition(${competition.id})" class="text-red-600 hover:text-red-500">
                     <i class="fas fa-trash mr-1"></i>删除
                 </button>
@@ -641,40 +641,51 @@ competitionsList.innerHTML = competitions.map(competition => `
             }
         } catch (error) {
             console.error('加载比赛列表失败:', error);
+            const competitionsList = document.getElementById('competitionsList');
+            competitionsList.innerHTML = `
+            <div class="text-center text-red-400 py-8">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                加载比赛列表失败
+            </div>
+        `;
         }
     }
+
+
 
     // 创建比赛
     document.getElementById('createCompetitionForm').addEventListener('submit', async function (e) {
         e.preventDefault();
 
+        // 获取表单数据并格式化时间
+        const startDate = document.getElementById('startDate').value;
+        const startTime = document.getElementById('startTime').value;
+        const endDate = document.getElementById('endDate').value;
+        const endTime = document.getElementById('endTime').value;
+
+        // 验证时间字段
+        if (!startDate || !startTime || !endDate || !endTime) {
+            showNotification('请填写完整的开始时间和结束时间', 'error');
+            return;
+        }
+
         const formData = {
             name: document.getElementById('competitionName').value,
             description: document.getElementById('competitionDescription').value,
             background_story: document.getElementById('competitionStory').value,
-            start_time: document.getElementById('startDate').value + 'T' + document.getElementById('startTime').value,
-            end_time: document.getElementById('endDate').value + 'T' + document.getElementById('endTime').value,
-            targets: [
-                {
-                    name: 'Web服务器',
-                    ip_address: '192.168.1.100',
-                    points: 100,
-                    description: 'Web应用服务靶标'
-                },
-                {
-                    name: '数据库服务器',
-                    ip_address: '192.168.1.101',
-                    points: 150,
-                    description: '数据库服务靶标'
-                },
-                {
-                    name: '文件服务器',
-                    ip_address: '192.168.1.102',
-                    points: 80,
-                    description: '文件服务靶标'
-                }
-            ]
+            start_date: startDate,
+            start_time: startTime,
+            end_date: endDate,
+            end_time: endTime
         };
+
+        console.log('提交的比赛数据:', formData);
+
+        // 验证必填字段
+        if (!formData.name) {
+            showNotification('比赛名称不能为空', 'error');
+            return;
+        }
 
         const createCompetitionBtn = document.getElementById('createCompetitionBtn');
         const createCompetitionText = document.getElementById('createCompetitionText');
@@ -702,7 +713,11 @@ competitionsList.innerHTML = competitions.map(competition => `
 
         } catch (error) {
             console.error('创建比赛失败:', error);
-            showNotification('创建请求失败', 'error');
+            if (error.response && error.response.data) {
+                showNotification(error.response.data.message || '创建请求失败', 'error');
+            } else {
+                showNotification('网络连接错误，请稍后重试', 'error');
+            }
         } finally {
             // 恢复按钮状态
             createCompetitionBtn.disabled = false;
@@ -710,6 +725,7 @@ competitionsList.innerHTML = competitions.map(competition => `
             createCompetitionLoading.classList.add('hidden');
         }
     });
+
 
     // 结束比赛
     async function endCompetition(competitionId) {
@@ -1258,8 +1274,8 @@ competitionsList.innerHTML = competitions.map(competition => `
 
 
     // 显示修改队名模态框
-function showRenameTeamModal(teamId, currentName) {
-    showModal(`
+    function showRenameTeamModal(teamId, currentName) {
+        showModal(`
         <h3 class="text-xl font-bold text-white mb-4">修改队伍名称</h3>
         <form id="renameTeamForm" class="space-y-4">
             <input type="hidden" id="renameTeamId" value="${teamId}">
@@ -1279,43 +1295,43 @@ function showRenameTeamModal(teamId, currentName) {
         </form>
     `);
 
-    document.getElementById('renameTeamForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        await renameTeam(teamId);
-    });
-}
-
-// 修改队名
-async function renameTeam(teamId) {
-    try {
-        const newName = document.getElementById('newTeamName').value.trim();
-        
-        if (!newName) {
-            showNotification('请输入队伍名称', 'warning');
-            return;
-        }
-        
-        if (newName.length < 3) {
-            showNotification('队伍名称至少需要3个字符', 'warning');
-            return;
-        }
-
-        const response = await axios.put(`/api/admin/teams/${teamId}/rename`, {
-            team_name: newName
+        document.getElementById('renameTeamForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            await renameTeam(teamId);
         });
-
-        if (response.data.success) {
-            showNotification('队伍名称修改成功', 'success');
-            closeModal();
-            loadTeams(); // 重新加载队伍列表
-        } else {
-            showNotification(response.data.message || '修改失败', 'error');
-        }
-    } catch (error) {
-        console.error('修改队名失败:', error);
-        showNotification('修改请求失败', 'error');
     }
-}
+
+    // 修改队名
+    async function renameTeam(teamId) {
+        try {
+            const newName = document.getElementById('newTeamName').value.trim();
+
+            if (!newName) {
+                showNotification('请输入队伍名称', 'warning');
+                return;
+            }
+
+            if (newName.length < 3) {
+                showNotification('队伍名称至少需要3个字符', 'warning');
+                return;
+            }
+
+            const response = await axios.put(`/api/admin/teams/${teamId}/rename`, {
+                team_name: newName
+            });
+
+            if (response.data.success) {
+                showNotification('队伍名称修改成功', 'success');
+                closeModal();
+                loadTeams(); // 重新加载队伍列表
+            } else {
+                showNotification(response.data.message || '修改失败', 'error');
+            }
+        } catch (error) {
+            console.error('修改队名失败:', error);
+            showNotification('修改请求失败', 'error');
+        }
+    }
 
 
 
@@ -1326,7 +1342,24 @@ async function showEditCompetitionModal(competitionId) {
         const response = await axios.get(`/api/admin/competitions/${competitionId}`);
         if (response.data.success) {
             const competition = response.data.competition;
-            
+
+            // 格式化时间用于输入框
+            const formatForInput = (isoString) => {
+                if (!isoString) return '';
+                try {
+                    const date = new Date(isoString);
+                    // 转换为本地时间并格式化为YYYY-MM-DDTHH:MM
+                    const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+                    return localDate.toISOString().slice(0, 16);
+                } catch (e) {
+                    console.error('时间格式化错误:', e);
+                    return '';
+                }
+            };
+
+            const startTime = formatForInput(competition.start_time);
+            const endTime = formatForInput(competition.end_time);
+
             showModal(`
                 <h3 class="text-xl font-bold text-white mb-4">编辑比赛</h3>
                 <form id="editCompetitionForm" class="space-y-4">
@@ -1346,11 +1379,15 @@ async function showEditCompetitionModal(competitionId) {
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-300 mb-2">开始时间</label>
-                            <input type="datetime-local" id="editCompetitionStartTime" value="${competition.start_time ? competition.start_time.replace(' ', 'T').substring(0, 16) : ''}" class="cyber-input w-full px-3 py-2 rounded-lg">
+                            <input type="datetime-local" id="editCompetitionStartTime" 
+                                   value="${startTime}" 
+                                   class="cyber-input w-full px-3 py-2 rounded-lg">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-300 mb-2">结束时间</label>
-                            <input type="datetime-local" id="editCompetitionEndTime" value="${competition.end_time ? competition.end_time.replace(' ', 'T').substring(0, 16) : ''}" class="cyber-input w-full px-3 py-2 rounded-lg">
+                            <input type="datetime-local" id="editCompetitionEndTime" 
+                                   value="${endTime}" 
+                                   class="cyber-input w-full px-3 py-2 rounded-lg">
                         </div>
                     </div>
                     <div class="flex items-center">
@@ -1358,16 +1395,20 @@ async function showEditCompetitionModal(competitionId) {
                         <label class="text-sm font-medium text-gray-300">是否活跃</label>
                     </div>
                     <div class="flex justify-end space-x-3">
-                        <button type="button" onclick="closeModal()" class="px-4 py-2 bg-gray-600 rounded">取消</button>
+                        <button type="button" onclick="closeModal()" class="px-4 py-2 bg-gray-600 rounded hover:bg-gray-700 transition duration-200">取消</button>
                         <button type="submit" class="cyber-button px-4 py-2 rounded">保存修改</button>
                     </div>
                 </form>
             `);
 
-            document.getElementById('editCompetitionForm').addEventListener('submit', async function(e) {
+            // 添加表单提交事件
+            document.getElementById('editCompetitionForm').addEventListener('submit', async function (e) {
                 e.preventDefault();
                 await updateCompetition(competitionId);
             });
+
+        } else {
+            showNotification('获取比赛信息失败', 'error');
         }
     } catch (error) {
         console.error('获取比赛详情失败:', error);
@@ -1378,14 +1419,33 @@ async function showEditCompetitionModal(competitionId) {
 // 更新比赛信息
 async function updateCompetition(competitionId) {
     try {
+        const startTime = document.getElementById('editCompetitionStartTime').value;
+        const endTime = document.getElementById('editCompetitionEndTime').value;
+
+        // 验证时间
+        if (startTime && endTime) {
+            const startDate = new Date(startTime);
+            const endDate = new Date(endTime);
+            if (startDate >= endDate) {
+                showNotification('结束时间必须晚于开始时间', 'error');
+                return;
+            }
+        }
+
         const formData = {
             name: document.getElementById('editCompetitionName').value,
             description: document.getElementById('editCompetitionDescription').value,
             background_story: document.getElementById('editCompetitionStory').value,
-            start_time: document.getElementById('editCompetitionStartTime').value,
-            end_time: document.getElementById('editCompetitionEndTime').value,
+            start_time: startTime,
+            end_time: endTime,
             is_active: document.getElementById('editCompetitionActive').checked
         };
+
+        // 验证必要字段
+        if (!formData.name) {
+            showNotification('比赛名称不能为空', 'error');
+            return;
+        }
 
         const response = await axios.put(`/api/admin/competitions/${competitionId}`, formData);
 
@@ -1394,12 +1454,120 @@ async function updateCompetition(competitionId) {
             closeModal();
             loadCompetitions(); // 重新加载比赛列表
         } else {
-            showNotification(response.data.message, 'error');
+            showNotification(response.data.message || '更新失败', 'error');
         }
     } catch (error) {
         console.error('更新比赛失败:', error);
-        showNotification('更新失败', 'error');
+        if (error.response && error.response.data) {
+            showNotification(error.response.data.message || '更新失败', 'error');
+        } else {
+            showNotification('网络连接错误，请稍后重试', 'error');
+        }
     }
 }
+
+
+
+
+    // 更新比赛信息
+    async function updateCompetition(competitionId) {
+        try {
+            const startTime = document.getElementById('editCompetitionStartTime').value;
+            const endTime = document.getElementById('editCompetitionEndTime').value;
+
+            const formData = {
+                name: document.getElementById('editCompetitionName').value,
+                description: document.getElementById('editCompetitionDescription').value,
+                background_story: document.getElementById('editCompetitionStory').value,
+                start_time: document.getElementById('editCompetitionStartTime').value,
+                end_time: document.getElementById('editCompetitionEndTime').value,
+                is_active: document.getElementById('editCompetitionActive').checked
+            };
+
+            const response = await axios.put(`/api/admin/competitions/${competitionId}`, formData);
+
+            if (response.data.success) {
+                showNotification('比赛信息更新成功', 'success');
+                closeModal();
+                loadCompetitions(); // 重新加载比赛列表
+            } else {
+                showNotification(response.data.message, 'error');
+            }
+        } catch (error) {
+            console.error('更新比赛失败:', error);
+            showNotification('更新失败', 'error');
+        }
+    }
+    // 时间验证函数
+    function validateCompetitionTimes() {
+        const startDate = document.getElementById('startDate').value;
+        const startTime = document.getElementById('startTime').value;
+        const endDate = document.getElementById('endDate').value;
+        const endTime = document.getElementById('endTime').value;
+
+        if (!startDate || !startTime || !endDate || !endTime) {
+            return true; // 让后端处理空值验证
+        }
+
+        const startDateTime = new Date(`${startDate}T${startTime}`);
+        const endDateTime = new Date(`${endDate}T${endTime}`);
+
+        if (startDateTime >= endDateTime) {
+            showNotification('结束时间必须晚于开始时间', 'error');
+            return false;
+        }
+
+        return true;
+    }
+
+    // 在表单提交时调用验证
+    document.getElementById('createCompetitionForm').addEventListener('submit', function (e) {
+        if (!validateCompetitionTimes()) {
+            e.preventDefault();
+            return false;
+        }
+    });
+    // 格式化时间显示（转换为本地时间）
+    function formatTime(isoString) {
+        if (!isoString) return '未知时间';
+
+        try {
+            const date = new Date(isoString);
+            // 转换为本地时间显示
+            return date.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+        } catch (e) {
+            console.error('时间格式化错误:', e);
+            return isoString;
+        }
+    }
+
+    // 专门用于比赛时间的格式化函数
+    function formatCompetitionTime(isoString) {
+        if (!isoString) return '未设置';
+
+        try {
+            const date = new Date(isoString);
+            // 转换为本地时间显示，只显示日期和时间（不显示星期）
+            return date.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            }).replace(/\//g, '-');
+        } catch (e) {
+            console.error('比赛时间格式化错误:', e);
+            return isoString;
+        }
+    }
 </script>
 {% endblock %}
