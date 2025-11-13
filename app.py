@@ -623,13 +623,14 @@ def submit_flag():
         return jsonify({'success': False, 'message': '当前没有活跃的比赛'}), 400
 
     data = request.json
-    submitted_flag = data.get('flag', '').strip()
+    submitted_flag = data.get('flag', '').strip()  # 只做基本的去除前后空格处理
 
     if not submitted_flag:
         return jsonify({'success': False, 'message': 'Flag不能为空'}), 400
 
+    # 直接查询与提交的flag完全一致的靶标
     target = Target.query.filter_by(
-        flag=submitted_flag,
+        flag=submitted_flag,  # 直接比较，不做大小写转换
         competition_id=active_competition.id,
         is_active=True
     ).first()
@@ -704,6 +705,7 @@ def submit_flag():
         'message': f'Flag提交成功！获得 {target.points} 分',
         'points': target.points
     })
+
 
 @app.route('/api/rankings', methods=['GET'])
 def get_rankings():

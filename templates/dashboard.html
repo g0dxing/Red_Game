@@ -522,16 +522,16 @@
     // 自动刷新Flag输入框焦点
     document.getElementById('flagInput').addEventListener('input', function () {
         // 自动转换为大写
-        this.value = this.value.toUpperCase();
+        //this.value = this.value.toUpperCase();
 
         // 自动添加FLAG{}格式
         if (this.value && !this.value.startsWith('FLAG{')) {
-            this.value = 'FLAG{' + this.value.replace(/[{}]/g, '');
+            //this.value = 'FLAG{' + this.value.replace(/[{}]/g, '');
         }
 
         // 确保有闭合括号
         if (this.value.includes('FLAG{') && !this.value.includes('}')) {
-            this.value = this.value + '}';
+            //this.value = this.value + '}';
         }
     });
 </script>
