@@ -28,6 +28,9 @@ python-dateutil==2.8.2
 # JSON Handling
 jsonschema==4.19.1
 
+# Excel File Handling (for AWD mode target import)
+openpyxl==3.1.2
+
 # Environment Variables
 python-dotenv==1.0.0
 

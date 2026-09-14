@@ -1,0 +1,467 @@
+{% extends "base.html" %}
+
+{% block title %}裁判评审工作台 - 实时攻防平台{% endblock %}
+
+{% block content %}
+<div class="min-h-screen py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- 页面标题 -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold text-white mb-2">
+                <i class="fas fa-gavel mr-3 text-yellow-400"></i>裁判评审工作台
+            </h1>
+            <p class="text-gray-300">审核攻防报告，评分与驳回管理</p>
+        </div>
+
+        <!-- 统计卡片 -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="cyber-card p-6 rounded-lg">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">待审核</p>
+                        <p id="pendingCount" class="text-3xl font-bold text-yellow-400">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-yellow-600 bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-clock text-yellow-400 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cyber-card p-6 rounded-lg">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">已通过</p>
+                        <p id="approvedCount" class="text-3xl font-bold text-green-400">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-600 bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-check-circle text-green-400 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cyber-card p-6 rounded-lg">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">已驳回</p>
+                        <p id="rejectedCount" class="text-3xl font-bold text-red-400">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-red-600 bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-times-circle text-red-400 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cyber-card p-6 rounded-lg">
+                <div class="flex items-center justify-center">
+                    <a href="/awd/api/reports/download_all" class="cyber-button py-3 px-6 rounded-lg font-semibold inline-block text-center">
+                        <i class="fas fa-download mr-2"></i>下载全部报告
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 标签页导航 -->
+        <div class="mb-6">
+            <nav class="flex space-x-4 border-b border-gray-600">
+                <button class="report-tab-btn active" data-tab="pending" onclick="switchReportTab('pending')">
+                    <i class="fas fa-clock mr-2"></i>待审核
+                </button>
+                <button class="report-tab-btn" data-tab="approved" onclick="switchReportTab('approved')">
+                    <i class="fas fa-check-circle mr-2"></i>已通过
+                </button>
+                <button class="report-tab-btn" data-tab="rejected" onclick="switchReportTab('rejected')">
+                    <i class="fas fa-times-circle mr-2"></i>已驳回
+                </button>
+            </nav>
+        </div>
+
+        <!-- 报告列表 -->
+        <div class="cyber-card p-6 rounded-lg">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-white">
+                    <i class="fas fa-list mr-2"></i><span id="reportListTitle">待审核报告</span>
+                </h3>
+                <button onclick="loadCurrentTab()" class="text-red-400 hover:text-red-300 text-sm">
+                    <i class="fas fa-sync-alt mr-1"></i>刷新
+                </button>
+            </div>
+
+            <div id="reportsList" class="space-y-4">
+                <div class="text-center text-gray-400 py-8">
+                    <i class="fas fa-spinner fa-spin mr-2"></i>正在加载报告列表...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 报告详情模态框 -->
+<div id="reportModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="cyber-card p-6 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div id="reportModalContent"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<style>
+    .report-tab-btn {
+        color: #9ca3af;
+        padding: 0.5rem 1rem;
+        border-bottom: 2px solid transparent;
+        transition: all 0.3s ease;
+    }
+    .report-tab-btn:hover {
+        color: #f59e0b;
+    }
+    .report-tab-btn.active {
+        color: #f59e0b;
+        border-bottom-color: #dc2626;
+    }
+</style>
+<script>
+    let currentReportId = null;
+    let currentTab = 'pending';
+
+    document.addEventListener('DOMContentLoaded', function () {
+        loadPendingReports();
+    });
+
+    function switchReportTab(tab) {
+        currentTab = tab;
+        document.querySelectorAll('.report-tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-tab') === tab);
+        });
+        
+        const titles = {
+            'pending': '待审核报告',
+            'approved': '已通过报告',
+            'rejected': '已驳回报告'
+        };
+        document.getElementById('reportListTitle').textContent = titles[tab];
+        
+        loadCurrentTab();
+    }
+
+    function loadCurrentTab() {
+        if (currentTab === 'pending') {
+            loadPendingReports();
+        } else {
+            loadReportsByStatus(currentTab);
+        }
+    }
+
+    async function loadPendingReports() {
+        try {
+            const response = await axios.get('/awd/api/reports/pending');
+            if (response.data.success) {
+                document.getElementById('pendingCount').textContent = response.data.pending_count || 0;
+                document.getElementById('approvedCount').textContent = response.data.approved_count || 0;
+                document.getElementById('rejectedCount').textContent = response.data.rejected_count || 0;
+                
+                renderReports(response.data.reports, true);
+            }
+        } catch (error) {
+            console.error('加载报告列表失败:', error);
+            showNotification('加载报告列表失败', 'error');
+        }
+    }
+
+    async function loadReportsByStatus(status) {
+        try {
+            const response = await axios.get(`/awd/api/reports/all?status=${status}`);
+            if (response.data.success) {
+                renderReports(response.data.reports, false);
+            }
+        } catch (error) {
+            console.error('加载报告列表失败:', error);
+            showNotification('加载报告列表失败', 'error');
+        }
+    }
+
+    async function loadAllReports() {
+        try {
+            const response = await axios.get('/awd/api/reports/all');
+            if (response.data.success) {
+                renderReports(response.data.reports, false);
+            }
+        } catch (error) {
+            console.error('加载报告列表失败:', error);
+            showNotification('加载报告列表失败', 'error');
+        }
+    }
+
+    function renderReports(reports, showReviewButton) {
+        const reportsList = document.getElementById('reportsList');
+        
+        if (reports.length === 0) {
+            reportsList.innerHTML = `
+                <div class="text-center text-gray-400 py-8">
+                    <i class="fas fa-inbox mr-2"></i>暂无报告
+                </div>`;
+            return;
+        }
+
+        reportsList.innerHTML = reports.map(report => {
+            const typeColor = report.report_type === 'attack' ? 'bg-red-600' : 'bg-blue-600';
+            const typeText = report.report_type === 'attack' ? '攻击' : '防御';
+            const statusBadge = {
+                'pending': '<span class="px-2 py-1 bg-yellow-600 text-xs rounded">待审核</span>',
+                'approved': `<span class="px-2 py-1 bg-green-600 text-xs rounded">已通过 ${report.score || 0}分</span>`,
+                'rejected': '<span class="px-2 py-1 bg-red-600 text-xs rounded">已驳回</span>'
+            };
+            
+            return `
+                <div class="bg-gray-800 p-4 rounded-lg hover:bg-gray-750 transition duration-200">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-10 h-10 ${typeColor} bg-opacity-20 rounded-lg flex items-center justify-center">
+                                <i class="fas ${report.report_type === 'attack' ? 'fa-bolt text-red-400' : 'fa-shield-alt text-blue-400'}"></i>
+                            </div>
+                            <div>
+                                <div class="flex items-center space-x-2">
+                                    <h4 class="font-semibold text-white">#${report.id} ${report.report_title}</h4>
+                                    <span class="px-2 py-1 ${typeColor} text-xs rounded">${typeText}</span>
+                                    ${statusBadge[report.status] || ''}
+                                </div>
+                                <p class="text-sm text-gray-400 mt-1">
+                                    目标: ${report.target_name || '未知'} | 提交: ${report.reporter_team || '未知'}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <span class="text-xs text-gray-500">${formatTime(report.created_at)}</span>
+                            <button onclick="showReportDetail(${report.id})" class="cyber-button py-1 px-3 rounded-lg text-sm">
+                                <i class="fas fa-eye mr-1"></i>查看
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+        }).join('');
+    }
+
+    async function showReportDetail(reportId) {
+        currentReportId = reportId;
+        try {
+            const response = await axios.get(`/awd/api/reports/${reportId}`);
+            if (response.data.success) {
+                const report = response.data.report;
+                const modalContent = document.getElementById('reportModalContent');
+                
+                const statusClass = {
+                    'pending': 'bg-yellow-600',
+                    'approved': 'bg-green-600',
+                    'rejected': 'bg-red-600'
+                };
+                const statusText = {
+                    'pending': '待审核',
+                    'approved': '已通过',
+                    'rejected': '已驳回'
+                };
+
+                let reviewHtml = '';
+                if (report.status === 'pending') {
+                    reviewHtml = `
+                        <div class="bg-gray-800 p-4 rounded-lg">
+                            <h4 class="text-lg font-semibold text-white mb-4">
+                                <i class="fas fa-edit mr-2"></i>评审操作
+                            </h4>
+                            <form id="reviewForm" class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-2">评审结果</label>
+                                    <div class="flex space-x-4">
+                                        <label class="flex items-center cursor-pointer">
+                                            <input type="radio" name="reviewResult" value="approved" class="mr-2" onchange="toggleReviewFields()">
+                                            <span class="text-green-400"><i class="fas fa-check-circle mr-1"></i>通过</span>
+                                        </label>
+                                        <label class="flex items-center cursor-pointer">
+                                            <input type="radio" name="reviewResult" value="rejected" class="mr-2" onchange="toggleReviewFields()">
+                                            <span class="text-red-400"><i class="fas fa-times-circle mr-1"></i>驳回</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div id="scoreField" class="hidden">
+                                    <label class="block text-sm font-medium text-gray-300 mb-2">评分</label>
+                                    <input type="number" id="reviewScore" value="80" class="cyber-input w-full px-3 py-2 rounded-lg" placeholder="请输入正整数分数">
+                                </div>
+                                <div id="reasonField" class="hidden">
+                                    <label class="block text-sm font-medium text-gray-300 mb-2">驳回原因</label>
+                                    <textarea id="reviewReason" rows="3" class="cyber-input w-full px-3 py-2 rounded-lg" placeholder="请输入驳回原因"></textarea>
+                                </div>
+                                <div class="flex justify-end">
+                                    <button type="button" onclick="submitReview(${report.id})" class="cyber-button py-2 px-6 rounded-lg font-semibold">
+                                        <i class="fas fa-paper-plane mr-2"></i>提交评审
+                                    </button>
+                                </div>
+                            </form>
+                        </div>`;
+                } else {
+                    reviewHtml = `
+                        <div class="bg-gray-800 p-4 rounded-lg">
+                            <h4 class="text-lg font-semibold text-white mb-4">
+                                <i class="fas fa-info-circle mr-2"></i>评审结果
+                            </h4>
+                            <div class="space-y-3">
+                                <div class="flex justify-between p-3 bg-gray-700 rounded">
+                                    <span class="text-gray-400">评审状态</span>
+                                    <span class="px-2 py-1 ${statusClass[report.status]} text-xs rounded">${statusText[report.status]}</span>
+                                </div>
+                                ${report.score ? `
+                                <div class="flex justify-between p-3 bg-gray-700 rounded">
+                                    <span class="text-gray-400">评分</span>
+                                    <span class="text-yellow-400 font-bold">${report.score} 分</span>
+                                </div>` : ''}
+                                ${report.review_reason ? `
+                                <div class="p-3 bg-gray-700 rounded">
+                                    <span class="text-gray-400">评审意见:</span>
+                                    <p class="text-white mt-2">${report.review_reason}</p>
+                                </div>` : ''}
+                                <div class="flex justify-between p-3 bg-gray-700 rounded">
+                                    <span class="text-gray-400">评审时间</span>
+                                    <span class="text-white">${formatTime(report.reviewed_at)}</span>
+                                </div>
+                            </div>
+                        </div>`;
+                }
+
+                modalContent.innerHTML = `
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-xl font-bold text-white">
+                            <i class="fas fa-file-alt mr-2"></i>报告详情 #${report.id}
+                        </h3>
+                        <button onclick="closeReportModal()" class="text-gray-400 hover:text-white">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+
+                    <div class="bg-gray-800 p-4 rounded-lg mb-6">
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <span class="text-gray-400">报告类型:</span>
+                                <span class="ml-2 px-2 py-1 ${report.report_type === 'attack' ? 'bg-red-600' : 'bg-blue-600'} text-xs rounded">
+                                    ${report.report_type === 'attack' ? '攻击报告' : '防御报告'}
+                                </span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">目标名称:</span>
+                                <span class="text-white ml-2">${report.target_name || '未知'}</span>
+                            </div>
+                            <div class="col-span-2">
+                                <span class="text-gray-400">报告标题:</span>
+                                <span class="text-white ml-2">${report.report_title}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">提交队伍:</span>
+                                <span class="text-white ml-2">${report.reporter_team || '未知'}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">提交时间:</span>
+                                <span class="text-white ml-2">${formatTime(report.created_at)}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <button onclick="downloadReport(${report.id})" class="cyber-button py-2 px-4 rounded-lg font-semibold">
+                            <i class="fas fa-file-pdf mr-2"></i>下载PDF报告
+                        </button>
+                    </div>
+
+                    ${reviewHtml}
+                `;
+
+                document.getElementById('reportModal').classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error('获取报告详情失败:', error);
+            showNotification('获取报告详情失败', 'error');
+        }
+    }
+
+    function toggleReviewFields() {
+        const result = document.querySelector('input[name="reviewResult"]:checked');
+        const scoreField = document.getElementById('scoreField');
+        const reasonField = document.getElementById('reasonField');
+
+        if (result) {
+            if (result.value === 'approved') {
+                scoreField.classList.remove('hidden');
+                reasonField.classList.add('hidden');
+            } else if (result.value === 'rejected') {
+                scoreField.classList.add('hidden');
+                reasonField.classList.remove('hidden');
+            }
+        }
+    }
+
+    async function submitReview(reportId) {
+        const result = document.querySelector('input[name="reviewResult"]:checked');
+        if (!result) {
+            showNotification('请选择评审结果', 'error');
+            return;
+        }
+
+        const reviewData = {
+            action: result.value === 'approved' ? 'approve' : 'reject'
+        };
+
+        if (result.value === 'approved') {
+            const score = document.getElementById('reviewScore').value;
+            if (!score || score.trim() === '') {
+                showNotification('请输入分数', 'error');
+                return;
+            }
+            const scoreNum = parseInt(score);
+            if (isNaN(scoreNum) || scoreNum <= 0 || scoreNum !== parseFloat(score)) {
+                showNotification('分数必须是正整数', 'error');
+                return;
+            }
+            reviewData.score = scoreNum;
+        } else if (result.value === 'rejected') {
+            const reason = document.getElementById('reviewReason').value.trim();
+            if (!reason) {
+                showNotification('请输入驳回原因', 'error');
+                return;
+            }
+            reviewData.reason = reason;
+        }
+
+        try {
+            const response = await axios.post(`/awd/api/reports/${reportId}/review`, reviewData);
+            if (response.data.success) {
+                showNotification(response.data.message, 'success');
+                closeReportModal();
+                loadCurrentTab();
+            } else {
+                showNotification(response.data.message || '评审失败', 'error');
+            }
+        } catch (error) {
+            console.error('提交评审失败:', error);
+            showNotification('提交评审失败', 'error');
+        }
+    }
+
+    function downloadReport(reportId) {
+        window.open(`/awd/api/reports/${reportId}/download`, '_blank');
+    }
+
+    function closeReportModal() {
+        document.getElementById('reportModal').classList.add('hidden');
+    }
+
+    function formatTime(isoString) {
+        if (!isoString) return '未知时间';
+        try {
+            return new Date(isoString).toLocaleString('zh-CN');
+        } catch (e) {
+            return isoString;
+        }
+    }
+
+    document.getElementById('reportModal').addEventListener('click', function (e) {
+        if (e.target === this) closeReportModal();
+    });
+</script>
+{% endblock %}

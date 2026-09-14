@@ -1,5 +1,6 @@
 -- 实时攻防平台数据库设计
 -- 主题：红黑色调攻防平台
+-- 支持ATK和AWD两种比赛模式
 
 -- 删除数据库
 DROP DATABASE IF EXISTS Red_Game;
@@ -21,15 +22,16 @@ CREATE TABLE teams (
 );
 
 -- 然后创建用户表（引用队伍表）
+-- role支持: admin, red_team, judge, attacker, defender
 CREATE TABLE users (
     id INT PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(50) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     email VARCHAR(100),
-    role ENUM('admin', 'red_team') DEFAULT 'red_team',
+    role ENUM('admin', 'red_team', 'judge', 'attacker', 'defender') DEFAULT 'red_team',
     team_id INT,
     nickname VARCHAR(100),
-    avatar VARCHAR(255),  -- 确保有这个字段
+    avatar VARCHAR(255),
     total_score INT DEFAULT 0,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -133,6 +135,58 @@ CREATE TABLE target_status (
     FOREIGN KEY (target_id) REFERENCES targets(id) ON DELETE CASCADE
 );
 
+-- =============================================================================
+-- AWD模式新增表
+-- =============================================================================
+
+-- 比赛配置表（存储比赛模式设置）
+CREATE TABLE competition_configs (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    mode ENUM('ATK', 'AWD') NOT NULL DEFAULT 'ATK',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- 攻击目标资产表（AWD模式下的攻击目标）
+CREATE TABLE attack_targets (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    asset_name VARCHAR(100) NOT NULL,
+    target_info VARCHAR(255) NOT NULL,  -- IP或域名
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 目标分配表（队伍与攻击目标的多对多关系）
+CREATE TABLE target_assignments (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    target_id INT NOT NULL,
+    team_id INT NOT NULL,
+    team_type ENUM('attack', 'defense') NOT NULL DEFAULT 'attack',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (target_id) REFERENCES attack_targets(id) ON DELETE CASCADE,
+    FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE
+);
+
+-- 报告表（攻防报告）
+CREATE TABLE reports (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    reporter_id INT NOT NULL,
+    report_type ENUM('attack', 'defense') NOT NULL,
+    target_id INT NOT NULL,
+    report_title VARCHAR(200) NOT NULL,
+    file_path VARCHAR(255),
+    file_name VARCHAR(100),
+    status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+    review_reason TEXT,
+    reviewer_id INT,
+    score INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    reviewed_at TIMESTAMP,
+    FOREIGN KEY (reporter_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (target_id) REFERENCES attack_targets(id) ON DELETE CASCADE,
+    FOREIGN KEY (reviewer_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
 -- 创建索引
 CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_team_id ON users(team_id);
@@ -145,6 +199,13 @@ CREATE INDEX idx_system_logs_created_at ON system_logs(created_at);
 CREATE INDEX idx_system_logs_log_type ON system_logs(log_type);
 CREATE INDEX idx_attack_logs_team_id ON attack_logs(team_id);
 CREATE INDEX idx_attack_logs_timestamp ON attack_logs(timestamp);
+
+-- AWD模式索引
+CREATE INDEX idx_target_assignments_target_id ON target_assignments(target_id);
+CREATE INDEX idx_target_assignments_team_id ON target_assignments(team_id);
+CREATE INDEX idx_reports_reporter_id ON reports(reporter_id);
+CREATE INDEX idx_reports_status ON reports(status);
+CREATE INDEX idx_reports_target_id ON reports(target_id);
 
 -- 插入默认管理员账户（密码：godxing）
 INSERT INTO users (username, password, email, role, nickname) VALUES 

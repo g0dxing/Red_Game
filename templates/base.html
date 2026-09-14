@@ -4,19 +4,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>{% block title %}实时攻防平台{% endblock %}</title>
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico?v=2">
     
     <!-- Tailwind CSS -->
-    <script src="/static/js/tailwind.js"></script>
+    <script src="/static/js/tailwind.js?v=2"></script>
 
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="/static/css/font-awesome.css">
+    <link rel="stylesheet" href="/static/css/font-awesome.css?v=2">
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/static/css/custom.css">
+    <link rel="stylesheet" href="/static/css/custom.css?v=2">
 {% block extra_head %}
-<link rel="stylesheet" href="/static/css/custom.css">
+<link rel="stylesheet" href="/static/css/custom.css?v=2">
 {% endblock %}
 
 </head>
@@ -49,6 +52,10 @@
                     {% if session.get('role') == 'admin' %}
                     <a href="/admin" class="cyber-nav-item">
                         <i class="fas fa-cog mr-2"></i>管理面板
+                    </a>
+                    {% elif session.get('role') == 'judge' %}
+                    <a href="/judge" class="cyber-nav-item">
+                        <i class="fas fa-gavel mr-2"></i>评审工作台
                     </a>
                     {% elif session.get('username') %}
                     <a href="/dashboard" class="cyber-nav-item">
@@ -85,7 +92,7 @@
                                 <p class="text-sm font-medium text-white">{{ session.get('nickname',
                                     session.get('username')) }}</p>
                                 <p class="text-xs text-gray-300">
-                                    {% if session.get('role') == 'admin' %}管理员{% endif %}
+                                    {% if session.get('role') == 'admin' %}管理员{% elif session.get('role') == 'judge' %}裁判{% elif session.get('role') == 'attacker' %}攻击方{% elif session.get('role') == 'defender' %}防守方{% else %}红队成员{% endif %}
                                 </p>
                             </div>
                         </div>
@@ -130,12 +137,12 @@
     </footer>
 
 <!-- JavaScript -->
-<script src="/static/js/socket.io.js"></script>
-<script src="/static/js/axios.min.js"></script>
+<script src="/static/js/socket.io.js?v=2"></script>
+<script src="/static/js/axios.min.js?v=2"></script>
 
 
 {% block extra_js %}
-<script src="/static/js/situation.js"></script>
+<script src="/static/js/situation.js?v=2"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         initSituation();
@@ -143,7 +150,7 @@
 </script>
 {% endblock %}
     <!-- Common JavaScript -->
-    <script src="/static/js/common.js"></script>
+    <script src="/static/js/common.js?v=2"></script>
 </body>
 
 </html>

@@ -16,12 +16,12 @@
                         </div>
                         <div>
                             <h1 class="text-2xl font-bold text-white">
-                                欢迎回来，<span id="userNickname">{{ session.get('nickname', session.get('username'))
-                                    }}</span>
+                                欢迎回来，<span id="userNickname">{{ session.get('nickname', session.get('username')) }}</span>
                             </h1>
                             <p class="text-gray-300">
                                 所属队伍：<span id="teamName" class="text-yellow-400">加载中...</span>
                             </p>
+                            <p class="text-gray-400 text-sm mt-1" id="roleBadge"></p>
                         </div>
                     </div>
                     <div class="text-right">
@@ -44,23 +44,38 @@
                 <div class="text-gray-300 text-sm">个人排名</div>
             </div>
 
-            <div class="cyber-card p-6 text-center">
+            <!-- ATK mode stat -->
+            <div class="cyber-card p-6 text-center" id="statFlagSubmitted">
                 <div class="text-2xl font-bold text-green-400 mb-2" id="flagsSubmitted">0</div>
                 <div class="text-gray-300 text-sm">已提交Flag</div>
             </div>
 
-            <div class="cyber-card p-6 text-center">
+            <!-- ATK mode stat -->
+            <div class="cyber-card p-6 text-center" id="statActiveTargets">
                 <div class="text-2xl font-bold text-purple-400 mb-2" id="activeTargets">0</div>
                 <div class="text-gray-300 text-sm">可攻击靶标</div>
+            </div>
+
+            <!-- AWD mode stat (hidden by default) -->
+            <div class="cyber-card p-6 text-center hidden" id="statReportsSubmitted">
+                <div class="text-2xl font-bold text-green-400 mb-2" id="reportsSubmitted">0</div>
+                <div class="text-gray-300 text-sm">已提交报告</div>
+            </div>
+
+            <!-- AWD mode stat (hidden by default) -->
+            <div class="cyber-card p-6 text-center hidden" id="statReportsApproved">
+                <div class="text-2xl font-bold text-purple-400 mb-2" id="reportsApproved">0</div>
+                <div class="text-gray-300 text-sm">已通过报告</div>
             </div>
         </div>
 
         <!-- 主要内容区域 -->
         <div class="grid lg:grid-cols-3 gap-8">
-            <!-- 左侧：Flag提交和靶标 -->
+            <!-- 左侧 -->
             <div class="lg:col-span-2 space-y-8">
-                <!-- Flag提交 -->
-                <div class="cyber-card p-6 rounded-lg">
+
+                <!-- ATK mode: Flag提交 -->
+                <div id="atkPanel" class="cyber-card p-6 rounded-lg" style="display:none;">
                     <h3 class="text-xl font-bold text-white mb-4">
                         <i class="fas fa-flag mr-2"></i>Flag提交
                     </h3>
@@ -97,8 +112,8 @@
                     </div>
                 </div>
 
-                <!-- 靶标列表 -->
-                <div class="cyber-card p-6 rounded-lg">
+                <!-- ATK mode: 靶标列表 -->
+                <div id="atkTargetsPanel" class="cyber-card p-6 rounded-lg" style="display:none;">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-xl font-bold text-white">
                             <i class="fas fa-bullseye mr-2"></i>可攻击靶标
@@ -115,6 +130,63 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- AWD mode: 报告提交 -->
+                <div id="awdPanel" class="cyber-card p-6 rounded-lg" style="display:none;">
+                    <h3 class="text-xl font-bold text-white mb-4">
+                        <i class="fas fa-file-upload mr-2"></i>提交报告
+                    </h3>
+
+                    <form id="reportSubmitForm" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">目标选择</label>
+                            <select id="targetSelect" class="cyber-input w-full px-3 py-2 rounded-lg">
+                                <option value="">-- 请选择目标 --</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">报告标题</label>
+                            <input type="text" id="reportTitle" class="cyber-input w-full px-3 py-2 rounded-lg"
+                                placeholder="请输入报告标题">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">报告文件（仅支持PDF）</label>
+                            <input type="file" id="reportFile" accept=".pdf"
+                                class="cyber-input w-full px-3 py-2 rounded-lg text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-red-600 file:text-white hover:file:bg-red-700">
+                        </div>
+
+                        <button type="submit" class="cyber-button w-full py-2 px-4 rounded-lg font-semibold"
+                            id="submitReportBtn">
+                            <span id="submitReportText">
+                                <i class="fas fa-paper-plane mr-2"></i>提交报告
+                            </span>
+                            <span id="submitReportLoading" class="hidden">
+                                <i class="fas fa-spinner fa-spin mr-2"></i>提交中...
+                            </span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- AWD mode: 我的报告 -->
+                <div id="awdReportsPanel" class="cyber-card p-6 rounded-lg" style="display:none;">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-bold text-white">
+                            <i class="fas fa-list-alt mr-2"></i>我的报告
+                        </h3>
+                        <button onclick="loadMyReports()" class="text-red-400 hover:text-red-300 text-sm">
+                            <i class="fas fa-sync-alt mr-1"></i>刷新
+                        </button>
+                    </div>
+
+                    <div id="myReportsList" class="space-y-3">
+                        <div class="text-center text-gray-400 py-8">
+                            <i class="fas fa-spinner fa-spin mr-2"></i>
+                            正在加载报告列表...
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- 右侧：排行榜和个人信息 -->
@@ -124,7 +196,6 @@
                     <h3 class="text-xl font-bold text-white mb-4">
                         <i class="fas fa-user-cog mr-2"></i>个人信息
                     </h3>
-
 
                     <form id="profileForm" class="space-y-4">
                         <div>
@@ -179,20 +250,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- 个人排行榜 -->
-                <div class="cyber-card p-6 rounded-lg">
-                    <h3 class="text-xl font-bold text-white mb-4">
-                        <i class="fas fa-medal mr-2"></i>个人排行
-                    </h3>
-
-                    <div id="userRankings" class="space-y-2">
-                        <div class="text-center text-gray-400 py-8">
-                            <i class="fas fa-spinner fa-spin mr-2"></i>
-                            正在加载排行榜...
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -201,37 +258,71 @@
 
 {% block extra_js %}
 <script>
+    const USER_ROLE = '{{ session.get("role", "red_team") }}';
+    const IS_AWD = USER_ROLE === 'attacker' || USER_ROLE === 'defender';
+
     document.addEventListener('DOMContentLoaded', function () {
-        // 加载用户数据
+        initDashboard();
+    });
+
+    function initDashboard() {
+        applyRoleUI();
         loadUserData();
-        loadTargets();
         loadRankings();
 
-        // 每30秒刷新一次数据
         setInterval(loadRankings, 30000);
-        setInterval(loadTargets, 60000);
 
-        // 监听WebSocket积分更新
-        window.addEventListener('scoreUpdate', function (event) {
+        window.addEventListener('scoreUpdate', function () {
             loadRankings();
             loadUserData();
         });
-    });
+    }
 
-    // 加载用户数据
+    function applyRoleUI() {
+        const roleBadge = document.getElementById('roleBadge');
+        if (IS_AWD) {
+            const roleName = USER_ROLE === 'attacker' ? '攻击手' : '防守方';
+            roleBadge.innerHTML = `<i class="fas fa-shield-alt mr-1"></i>AWD模式 · ${roleName}`;
+
+            document.getElementById('atkPanel').style.display = 'none';
+            document.getElementById('atkTargetsPanel').style.display = 'none';
+            document.getElementById('statFlagSubmitted').classList.add('hidden');
+            document.getElementById('statActiveTargets').classList.add('hidden');
+
+            document.getElementById('awdPanel').style.display = '';
+            document.getElementById('awdReportsPanel').style.display = '';
+            document.getElementById('statReportsSubmitted').classList.remove('hidden');
+            document.getElementById('statReportsApproved').classList.remove('hidden');
+
+            loadUserTargets();
+            loadMyReports();
+        } else {
+            roleBadge.innerHTML = `<i class="fas fa-flag mr-1"></i>ATK模式 · 红队选手`;
+
+            document.getElementById('atkPanel').style.display = '';
+            document.getElementById('atkTargetsPanel').style.display = '';
+            document.getElementById('statFlagSubmitted').classList.remove('hidden');
+            document.getElementById('statActiveTargets').classList.remove('hidden');
+
+            document.getElementById('awdPanel').style.display = 'none';
+            document.getElementById('awdReportsPanel').style.display = 'none';
+            document.getElementById('statReportsSubmitted').classList.add('hidden');
+            document.getElementById('statReportsApproved').classList.add('hidden');
+
+            loadTargets();
+        }
+    }
+
     async function loadUserData() {
         try {
             const response = await axios.get('/api/user/profile');
             if (response.data.success) {
                 const user = response.data.user;
-
-                // 更新用户信息
                 document.getElementById('userNickname').textContent = user.nickname || user.username;
                 document.getElementById('userScore').textContent = user.total_score;
                 document.getElementById('nicknameInput').value = user.nickname || '';
                 document.getElementById('emailInput').value = user.email || '';
 
-                // 加载队伍信息
                 if (user.team_id) {
                     loadTeamInfo(user.team_id);
                 } else {
@@ -243,14 +334,12 @@
         }
     }
 
-    // 加载队伍信息
     async function loadTeamInfo(teamId) {
         try {
             const response = await axios.get('/api/rankings');
             if (response.data.success) {
                 const teams = response.data.team_rankings;
                 const team = teams.find(t => t.id === teamId);
-
                 if (team) {
                     document.getElementById('teamName').textContent = team.team_name;
                     document.getElementById('teamRank').textContent = '#' + (teams.findIndex(t => t.id === teamId) + 1);
@@ -261,14 +350,12 @@
         }
     }
 
-    // 加载靶标列表
     async function loadTargets() {
         try {
             const response = await axios.get('/api/targets');
             if (response.data.success) {
                 const targets = response.data.targets;
                 const targetsList = document.getElementById('targetsList');
-
                 document.getElementById('activeTargets').textContent = targets.length;
 
                 if (targets.length === 0) {
@@ -276,8 +363,7 @@
                         <div class="text-center text-gray-400 py-8">
                             <i class="fas fa-bullseye mr-2"></i>
                             当前没有可攻击的靶标
-                        </div>
-                    `;
+                        </div>`;
                     return;
                 }
 
@@ -299,7 +385,6 @@
         }
     }
 
-    // 加载排行榜
     async function loadRankings() {
         try {
             const response = await axios.get('/api/rankings');
@@ -307,49 +392,38 @@
                 const teams = response.data.team_rankings;
                 const users = response.data.user_rankings;
 
-                // 获取当前用户和队伍ID
                 const currentTeamId = parseInt('{{ session.get("team_id", 0) }}');
                 const currentUserId = parseInt('{{ session.get("user_id", 0) }}');
 
-                // 更新队伍排行榜
                 const teamRankings = document.getElementById('teamRankings');
                 teamRankings.innerHTML = teams.slice(0, 10).map((team, index) => {
                     const isCurrentTeam = team.id === currentTeamId;
                     return `
                         <div class="flex items-center justify-between p-2 rounded ${isCurrentTeam ? 'bg-red-900' : 'bg-gray-800'}">
                             <div class="flex items-center space-x-2">
-                                <span class="text-sm font-bold ${index < 3 ? 'text-yellow-400' : 'text-gray-400'}">
-                                    #${index + 1}
-                                </span>
+                                <span class="text-sm font-bold ${index < 3 ? 'text-yellow-400' : 'text-gray-400'}">#${index + 1}</span>
                                 <span class="text-sm text-white">${team.team_name}</span>
                             </div>
                             <span class="text-sm text-yellow-400">${team.total_score}</span>
-                        </div>
-                    `;
+                        </div>`;
                 }).join('');
 
-                // 更新个人排行榜
                 const userRankings = document.getElementById('userRankings');
                 userRankings.innerHTML = users.slice(0, 10).map((user, index) => {
                     const isCurrentUser = user.id === currentUserId;
                     return `
                         <div class="flex items-center justify-between p-2 rounded ${isCurrentUser ? 'bg-red-900' : 'bg-gray-800'}">
                             <div class="flex items-center space-x-2">
-                                <span class="text-sm font-bold ${index < 3 ? 'text-yellow-400' : 'text-gray-400'}">
-                                    #${index + 1}
-                                </span>
+                                <span class="text-sm font-bold ${index < 3 ? 'text-yellow-400' : 'text-gray-400'}">#${index + 1}</span>
                                 <span class="text-sm text-white">${user.nickname || user.username}</span>
                             </div>
                             <span class="text-sm text-yellow-400">${user.total_score}</span>
-                        </div>
-                    `;
+                        </div>`;
                 }).join('');
 
-                // 更新个人排名
                 const currentUserIndex = users.findIndex(u => u.id === currentUserId);
                 document.getElementById('personalRank').textContent = currentUserIndex >= 0 ? `#${currentUserIndex + 1}` : '-';
 
-                // 更新已提交Flag数量
                 const currentUser = users.find(u => u.id === currentUserId);
                 if (currentUser) {
                     document.getElementById('flagsSubmitted').textContent = currentUser.targets_completed || 0;
@@ -360,78 +434,201 @@
         }
     }
 
-    // Flag提交
+    // ==================== AWD Functions ====================
+
+    async function loadUserTargets() {
+        try {
+            // 使用用户级API获取可访问的目标
+            const response = await axios.get('/awd/api/user/targets/assets');
+            if (!response.data.success) return;
+
+            const targets = response.data.targets;
+
+            const select = document.getElementById('targetSelect');
+            select.innerHTML = '<option value="">-- 请选择目标 --</option>';
+            targets.forEach(target => {
+                const opt = document.createElement('option');
+                opt.value = target.id;
+                opt.textContent = `${target.asset_name} (${target.target_info})`;
+                select.appendChild(opt);
+            });
+
+            if (targets.length === 0) {
+                select.innerHTML = '<option value="">-- 暂无可攻击目标 --</option>';
+            }
+        } catch (error) {
+            console.error('加载目标失败:', error);
+        }
+    }
+
+    document.getElementById('reportSubmitForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        await submitReport();
+    });
+
+    async function submitReport() {
+        const targetId = document.getElementById('targetSelect').value;
+        const title = document.getElementById('reportTitle').value.trim();
+        const fileInput = document.getElementById('reportFile');
+        const file = fileInput.files[0];
+
+        if (!targetId) { showNotification('请选择目标', 'warning'); return; }
+        if (!title) { showNotification('请输入报告标题', 'warning'); return; }
+        if (!file) { showNotification('请选择报告文件', 'warning'); return; }
+        if (!file.name.toLowerCase().endsWith('.pdf')) {
+            showNotification('只支持PDF格式', 'warning'); return;
+        }
+
+        const btn = document.getElementById('submitReportBtn');
+        const txt = document.getElementById('submitReportText');
+        const loading = document.getElementById('submitReportLoading');
+
+        btn.disabled = true;
+        txt.classList.add('hidden');
+        loading.classList.remove('hidden');
+
+        try {
+            const formData = new FormData();
+            formData.append('target_id', targetId);
+            formData.append('report_title', title);
+            formData.append('report_type', USER_ROLE === 'attacker' ? 'attack' : 'defense');
+            formData.append('file', file);
+
+            const response = await axios.post('/awd/api/reports/submit', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            if (response.data.success) {
+                showNotification('报告提交成功', 'success');
+                document.getElementById('reportTitle').value = '';
+                fileInput.value = '';
+                loadMyReports();
+                updateDashboardStats();
+            } else {
+                showNotification(response.data.message || '提交失败', 'error');
+            }
+        } catch (error) {
+            console.error('提交报告失败:', error);
+            showNotification(error.response?.data?.message || '提交报告失败', 'error');
+        } finally {
+            btn.disabled = false;
+            txt.classList.remove('hidden');
+            loading.classList.add('hidden');
+        }
+    }
+
+    async function loadMyReports() {
+        try {
+            const response = await axios.get('/awd/api/reports/my');
+            if (!response.data.success) return;
+
+            const reports = response.data.reports;
+            const container = document.getElementById('myReportsList');
+
+            if (reports.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-gray-400 py-8">
+                        <i class="fas fa-inbox mr-2"></i>暂无报告记录
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = reports.map(r => {
+                const statusMap = {
+                    'pending': { label: '待评审', cls: 'bg-yellow-600 text-yellow-100' },
+                    'approved': { label: '已通过', cls: 'bg-green-600 text-green-100' },
+                    'rejected': { label: '已驳回', cls: 'bg-red-600 text-red-100' }
+                };
+                const st = statusMap[r.status] || { label: r.status, cls: 'bg-gray-600 text-gray-100' };
+                const typeBadge = r.report_type === 'attack'
+                    ? '<span class="px-2 py-1 bg-red-700 text-xs rounded text-white">攻击</span>'
+                    : '<span class="px-2 py-1 bg-blue-700 text-xs rounded text-white">防御</span>';
+
+                let extra = '';
+                if (r.status === 'rejected' && r.review_reason) {
+                    extra = `<div class="mt-2 text-xs text-red-400"><i class="fas fa-exclamation-triangle mr-1"></i>驳回原因：${r.review_reason}</div>`;
+                }
+                if (r.status === 'approved' && r.score != null) {
+                    extra = `<div class="mt-2 text-xs text-green-400"><i class="fas fa-star mr-1"></i>得分：${r.score}</div>`;
+                }
+
+                return `
+                    <div class="bg-gray-800 p-4 rounded-lg">
+                        <div class="flex items-center justify-between mb-1">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-xs text-gray-500">#${r.id}</span>
+                                ${typeBadge}
+                                <span class="text-sm text-white font-semibold">${r.target_name || '未知目标'}</span>
+                            </div>
+                            <span class="px-2 py-1 text-xs rounded ${st.cls}">${st.label}</span>
+                        </div>
+                        <div class="text-sm text-gray-300">${r.report_title}</div>
+                        <div class="text-xs text-gray-500 mt-1">${r.created_at || ''}</div>
+                        ${extra}
+                    </div>`;
+            }).join('');
+
+            updateDashboardStatsFromReports(reports);
+        } catch (error) {
+            console.error('加载报告列表失败:', error);
+        }
+    }
+
+    function updateDashboardStatsFromReports(reports) {
+        const submitted = reports.length;
+        const approved = reports.filter(r => r.status === 'approved').length;
+        document.getElementById('reportsSubmitted').textContent = submitted;
+        document.getElementById('reportsApproved').textContent = approved;
+    }
+
+    function updateDashboardStats() {
+        if (IS_AWD) {
+            loadMyReports();
+        }
+    }
+
+    // ==================== ATK Flag Submit ====================
+
     document.getElementById('flagSubmitForm').addEventListener('submit', async function (e) {
         e.preventDefault();
-
         const flagInput = document.getElementById('flagInput');
         const flag = flagInput.value.trim();
-
-        if (!flag) {
-            showNotification('请输入Flag', 'warning');
-            return;
-        }
+        if (!flag) { showNotification('请输入Flag', 'warning'); return; }
 
         const submitFlagBtn = document.getElementById('submitFlagBtn');
         const submitFlagText = document.getElementById('submitFlagText');
         const submitFlagLoading = document.getElementById('submitFlagLoading');
 
-        // 显示加载状态
         submitFlagBtn.disabled = true;
         submitFlagText.classList.add('hidden');
         submitFlagLoading.classList.remove('hidden');
 
         try {
             const response = await axios.post('/api/flag/submit', { flag: flag });
-
-            console.log('Flag提交响应:', response.data);
-
             if (response.data.success) {
                 showNotification(response.data.message, 'success');
                 flagInput.value = '';
-
-                // 添加到提交历史
                 addToSubmissionHistory(flag, true, response.data.points);
-
-                // 刷新数据
                 loadUserData();
                 loadRankings();
-
-                // 更新用户积分显示
                 updateUserScoreFromAPI();
-
             } else {
-                // 服务器返回了success: false
                 showNotification(response.data.message, 'error');
                 addToSubmissionHistory(flag, false, 0);
             }
-
         } catch (error) {
             console.error('提交Flag失败:', error);
-
-            if (error.response) {
-                showNotification(error.response.data.message || '提交失败', 'error');
-            } else if (error.request) {
-                showNotification('网络连接错误，请检查网络连接', 'error');
-            } else {
-                showNotification('提交请求失败: ' + error.message, 'error');
-            }
-
+            showNotification(error.response?.data?.message || '提交失败', 'error');
             addToSubmissionHistory(flag, false, 0);
         } finally {
-            // 恢复按钮状态
             submitFlagBtn.disabled = false;
             submitFlagText.classList.remove('hidden');
             submitFlagLoading.classList.add('hidden');
         }
     });
 
-
-    // 添加到提交历史
     function addToSubmissionHistory(flag, isCorrect, points) {
         const submissionHistory = document.getElementById('submissionHistory');
-
-        // 移除"暂无记录"提示
         if (submissionHistory.children.length === 1 &&
             submissionHistory.firstChild.textContent.includes('暂无')) {
             submissionHistory.innerHTML = '';
@@ -445,73 +642,46 @@
                 <span class="text-xs text-gray-300">${flag}</span>
             </div>
             <div class="text-right">
-                <span class="text-xs ${isCorrect ? 'text-green-400' : 'text-red-400'}">
-                    ${isCorrect ? `+${points}分` : '错误'}
-                </span>
+                <span class="text-xs ${isCorrect ? 'text-green-400' : 'text-red-400'}">${isCorrect ? '+' + points + '分' : '错误'}</span>
                 <div class="text-xs text-gray-500">${new Date().toLocaleTimeString()}</div>
-            </div>
-        `;
+            </div>`;
 
         submissionHistory.insertBefore(historyItem, submissionHistory.firstChild);
-
-        // 保持最多5条记录
         while (submissionHistory.children.length > 5) {
             submissionHistory.removeChild(submissionHistory.lastChild);
         }
     }
 
-    // 个人信息更新
+    // ==================== Profile & Team ====================
+
     document.getElementById('profileForm').addEventListener('submit', async function (e) {
         e.preventDefault();
-
         const nickname = document.getElementById('nicknameInput').value.trim();
         const email = document.getElementById('emailInput').value.trim();
-
-        if (!nickname) {
-            showNotification('请输入昵称', 'warning');
-            return;
-        }
+        if (!nickname) { showNotification('请输入昵称', 'warning'); return; }
 
         try {
-            const response = await axios.put('/api/user/profile', {
-                nickname: nickname,
-                email: email
-            });
-
+            const response = await axios.put('/api/user/profile', { nickname, email });
             if (response.data.success) {
                 showNotification('个人信息更新成功', 'success');
                 loadUserData();
             } else {
                 showNotification(response.data.message || '更新失败', 'error');
             }
-
         } catch (error) {
             console.error('更新个人信息失败:', error);
             showNotification('更新请求失败', 'error');
         }
     });
 
-    // 队伍重命名
     document.getElementById('renameTeamForm').addEventListener('submit', async function (e) {
         e.preventDefault();
-
         const teamName = document.getElementById('teamNameInput').value.trim();
-
-        if (!teamName) {
-            showNotification('请输入队伍名称', 'warning');
-            return;
-        }
-
-        if (teamName.length < 3) {
-            showNotification('队伍名称至少需要3个字符', 'warning');
-            return;
-        }
+        if (!teamName) { showNotification('请输入队伍名称', 'warning'); return; }
+        if (teamName.length < 3) { showNotification('队伍名称至少需要3个字符', 'warning'); return; }
 
         try {
-            const response = await axios.put('/api/team/rename', {
-                team_name: teamName
-            });
-
+            const response = await axios.put('/api/team/rename', { team_name: teamName });
             if (response.data.success) {
                 showNotification('队伍名称更新成功', 'success');
                 document.getElementById('teamNameInput').value = '';
@@ -520,52 +690,20 @@
             } else {
                 showNotification(response.data.message || '更新失败', 'error');
             }
-
         } catch (error) {
             console.error('重命名队伍失败:', error);
             showNotification('更新请求失败', 'error');
         }
     });
 
-
-
-    // 调试函数 - 检查Flag提交状态
-    function debugFlagSubmission() {
-        const flagInput = document.getElementById('flagInput');
-        const flag = flagInput.value.trim();
-        console.log('调试Flag提交:', {
-            flag: flag,
-            flag长度: flag.length,
-            当前时间: new Date().toISOString()
-        });
-    }
-
-    // 在Flag输入框添加调试
-    document.getElementById('flagInput').addEventListener('focus', function () {
-        console.log('Flag输入框获得焦点');
-    });
-
-    // 在表单提交时添加调试
-    document.getElementById('flagSubmitForm').addEventListener('submit', function (e) {
-        console.log('Flag提交表单被触发');
-        debugFlagSubmission();
-    });
-
-    // 添加缺失的函数 - 更新用户积分
     function updateUserScoreFromAPI() {
-        // 从API获取最新的用户信息并更新显示
         axios.get('/api/user/profile')
             .then(response => {
                 if (response.data.success) {
-                    const user = response.data.user;
-                    document.getElementById('userScore').textContent = user.total_score;
+                    document.getElementById('userScore').textContent = response.data.user.total_score;
                 }
             })
-            .catch(error => {
-                console.error('更新用户积分失败:', error);
-            });
+            .catch(error => console.error('更新用户积分失败:', error));
     }
-
-
 </script>
 {% endblock %}

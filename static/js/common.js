@@ -82,6 +82,11 @@ function connectWebSocket() {
             window.dispatchEvent(new CustomEvent('logUpdate', { detail: data }));
         });
 
+        socket.on('report_reviewed', (data) => {
+            console.log('Report reviewed:', data);
+            window.dispatchEvent(new CustomEvent('reportReviewed', { detail: data }));
+        });
+
     } catch (error) {
         console.error('WebSocket initialization error:', error);
         updateWebSocketStatus(false);

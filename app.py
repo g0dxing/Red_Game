@@ -3,6 +3,7 @@
 """
 实时攻防平台后端主程序
 红黑色调主题，支持管理员和红队成员功能
+支持ATK和AWD两种比赛模式
 """
 import os
 import json
@@ -10,11 +11,18 @@ import random
 import string
 import time
 import threading
-from datetime import datetime, timedelta,timezone
+from datetime import datetime, timedelta, timezone
 from flask import Flask, request, jsonify, session, send_from_directory, render_template
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
-from flask_sqlalchemy import SQLAlchemy
+
+# 导入数据库和模型
+from database import db
+from models_all import (
+    User, Team, Competition, Target, FlagSubmission,
+    SystemLog, AttackLog, CompetitionConfig, AttackTarget,
+    TargetAssignment, Report, get_local_time
+)
 # =============================================================================
 # 配置信息 - 集中管理所有配置项
 # =============================================================================
@@ -51,7 +59,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = DB_CONFIG['TRACK_MODIFICATIONS']
 app.config['UPLOAD_FOLDER'] = APP_CONFIG['UPLOAD_FOLDER']
 
 # 初始化扩展
-db = SQLAlchemy(app)
+db.init_app(app)
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
@@ -60,129 +68,6 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # 全局变量
 online_users = {}
-
-# =============================================================================
-# 数据库模型定义
-# =============================================================================
-#定义获取本地时间函数
-def get_local_time():
-    """获取本地时间（北京时间）"""
-    return datetime.now()
-
-
-class User(db.Model):
-    """用户模型"""
-    __tablename__ = 'users'
-
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50), unique=True, nullable=False)
-    password = db.Column(db.String(255), nullable=False)
-    email = db.Column(db.String(100))
-    role = db.Column(db.Enum('admin', 'red_team'), default='red_team')
-    team_id = db.Column(db.Integer, db.ForeignKey('teams.id'), nullable=True)
-    nickname = db.Column(db.String(100))
-    avatar = db.Column(db.String(255))
-    total_score = db.Column(db.Integer, default=0)
-    is_active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow)
-    updated_at = db.Column(db.TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    team = db.relationship('Team', backref='members')
-    created_at = db.Column(db.TIMESTAMP, default=get_local_time)
-    updated_at = db.Column(db.TIMESTAMP, default=get_local_time, onupdate=get_local_time)
-
-class Team(db.Model):
-    """队伍模型"""
-    __tablename__ = 'teams'
-    id = db.Column(db.Integer, primary_key=True)
-    team_name = db.Column(db.String(100), unique=True, nullable=False)
-    team_icon = db.Column(db.String(255))
-    total_score = db.Column(db.Integer, default=0)
-    member_count = db.Column(db.Integer, default=0)
-    max_members = db.Column(db.Integer, default=3)  # 新增字段
-    created_at = db.Column(db.TIMESTAMP, default=get_local_time)
-    updated_at = db.Column(db.TIMESTAMP, default=get_local_time, onupdate=get_local_time)
-
-class Competition(db.Model):
-    """比赛模型"""
-    __tablename__ = 'competitions'
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(200), nullable=False)
-    description = db.Column(db.Text)
-    background_story = db.Column(db.Text)
-    theme_image = db.Column(db.String(255))
-    start_time = db.Column(db.DateTime)
-    end_time = db.Column(db.DateTime)
-    is_active = db.Column(db.Boolean, default=False)
-    is_ended = db.Column(db.Boolean, default=False)
-    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    created_at = db.Column(db.TIMESTAMP, default=get_local_time)
-    updated_at = db.Column(db.TIMESTAMP, default=get_local_time, onupdate=get_local_time)
-
-class Target(db.Model):
-    """靶标模型"""
-    __tablename__ = 'targets'
-
-    id = db.Column(db.Integer, primary_key=True)
-    competition_id = db.Column(db.Integer, db.ForeignKey('competitions.id'), nullable=False)
-    name = db.Column(db.String(100), nullable=False)
-    ip_address = db.Column(db.String(45), nullable=False)
-    flag = db.Column(db.String(255), nullable=False)
-    points = db.Column(db.Integer, default=100)
-    description = db.Column(db.Text)
-    is_active = db.Column(db.Boolean, default=True)
-
-    competition = db.relationship('Competition', backref='targets')
-    created_at = db.Column(db.TIMESTAMP, default=get_local_time)
-
-class FlagSubmission(db.Model):
-    """Flag提交模型"""
-    __tablename__ = 'flag_submissions'
-
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    target_id = db.Column(db.Integer, db.ForeignKey('targets.id'), nullable=True)
-    submitted_flag = db.Column(db.String(255), nullable=False)
-    is_correct = db.Column(db.Boolean, default=False)
-    points_earned = db.Column(db.Integer, default=0)
-    submitted_at = db.Column(db.TIMESTAMP, default=get_local_time)
-
-    user = db.relationship('User', backref='flag_submissions')
-    target = db.relationship('Target', backref='submissions')
-
-
-class SystemLog(db.Model):
-    """系统日志模型"""
-    __tablename__ = 'system_logs'
-
-    id = db.Column(db.Integer, primary_key=True)
-    log_type = db.Column(db.Enum('login', 'attack', 'system', 'error', 'success', 'warning', 'network', 'file_integrity', 'malware_detection'), default='system')
-    source_ip = db.Column(db.String(45))
-    target_ip = db.Column(db.String(45))
-    message = db.Column(db.Text, nullable=False)
-    severity = db.Column(db.Enum('low', 'medium', 'high', 'critical'), default='medium')
-    team_id = db.Column(db.Integer, db.ForeignKey('teams.id'), nullable=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    raw_data = db.Column(db.JSON)
-    created_at = db.Column(db.TIMESTAMP, default=get_local_time)
-
-    team = db.relationship('Team', backref='logs')
-    user = db.relationship('User', backref='logs')
-
-class AttackLog(db.Model):
-    """攻击日志模型"""
-    __tablename__ = 'attack_logs'
-
-    id = db.Column(db.Integer, primary_key=True)
-    team_id = db.Column(db.Integer, db.ForeignKey('teams.id'), nullable=False)
-    source_ip = db.Column(db.String(45), nullable=False)
-    target_ip = db.Column(db.String(45), nullable=False)
-    attack_type = db.Column(db.String(50))
-    traffic_volume = db.Column(db.Integer, default=0)
-    timestamp = db.Column(db.TIMESTAMP, default=get_local_time)
-
-    team = db.relationship('Team', backref='attack_logs')
 
 # =============================================================================
 # 工具函数
@@ -279,6 +164,11 @@ def situation_page():
 def change_password_page():
     """修改密码页面"""
     return render_template('change_password.html')
+
+@app.route('/judge')
+def judge_page():
+    """裁判评审工作台"""
+    return render_template('judge.html')
 
 # =============================================================================
 # API路由 - 认证相关
@@ -465,7 +355,7 @@ def change_password():
 @app.route('/api/team/rename', methods=['PUT'])
 def rename_team():
     """队伍重命名"""
-    if 'user_id' not in session or session.get('role') != 'red_team':
+    if 'user_id' not in session or session.get('role') not in ('red_team', 'attacker', 'defender'):
         return jsonify({'success': False, 'message': '无权限访问'}), 403
 
     user = User.query.get(session['user_id'])
@@ -1904,6 +1794,13 @@ def start_background_tasks():
     thread = threading.Thread(target=run_check, daemon=True)
     thread.start()
     print("后台任务已启动：比赛状态检查（每分钟一次）")
+
+# =============================================================================
+# AWD模式路由导入
+# =============================================================================
+
+from awd_routes import register_awd_routes
+register_awd_routes(app)
 
 # =============================================================================
 # 应用启动

@@ -1,0 +1,4 @@
+__pycache__/
+static/uploads/reports/*.pdf
+static/uploads/avatars/*.jpg
+static/uploads/avatars/*.png

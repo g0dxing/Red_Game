@@ -180,6 +180,8 @@
                         const user = response.data.user;
                         if (user.role === 'admin') {
                             window.location.href = '/admin';
+                        } else if (user.role === 'judge') {
+                            window.location.href = '/judge';
                         } else {
                             window.location.href = '/dashboard';
                         }
@@ -238,11 +240,13 @@
         // 自动聚焦到用户名输入框
         usernameInput.focus();
         
-        // 检查是否已经登录
+            // 检查是否已经登录
         checkAuth().then(result => {
             if (result.authenticated) {
                 if (result.user.role === 'admin') {
                     window.location.href = '/admin';
+                } else if (result.user.role === 'judge') {
+                    window.location.href = '/judge';
                 } else {
                     window.location.href = '/dashboard';
                 }
